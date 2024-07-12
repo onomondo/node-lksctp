@@ -426,7 +426,7 @@ napi_value do_sctp_sendmsg(napi_env env, napi_callback_info info) {
   timetolive = napi_helper_require_named_uint32_asserted(env, js_args_obj, "timeToLive", "do_sctp_sendmsg: timeToLive must be provided as number");
   context = napi_helper_require_named_uint32_asserted(env, js_args_obj, "context", "do_sctp_sendmsg: context must be provided as number");
 
-  bytes_sent = sctp_sendmsg(fd, buffer_addr, buffer_length, to_address, to_address_length, ppid, flags, stream_no, timetolive, context);
+  bytes_sent = sctp_sendmsg(fd, buffer_addr, buffer_length, to_address, to_address_length, htonl(ppid), flags, stream_no, timetolive, context);
 
   js_ret_obj = napi_helper_create_object_asserted(env);
 
