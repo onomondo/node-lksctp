@@ -3,6 +3,11 @@
 const assert = require("node:assert");
 const socketpairFactory = require("./lib/socketpair.js");
 
+// make sure unhandeled rejections are thrown
+process.on("unhandledRejection", (reason) => {
+  throw reason;
+});
+
 describe("socket", function () {
   this.timeout(20000);
 
