@@ -92,7 +92,10 @@ describe("socket", function () {
               },
 
               server: {
-                MIS: OS + 10
+                socket: {
+                  // always accept more than OS
+                  MIS: OS + 10
+                }
               }
             },
 
@@ -102,6 +105,39 @@ describe("socket", function () {
 
               const clientStatus = client.status();
               assert.strictEqual(clientStatus.numberOfOutgoingStreams, OS);
+            }
+          });
+        });
+      });
+
+      [
+        { MIS: 1 },
+        { MIS: 2 },
+        { MIS: 5 },
+        { MIS: 10 },
+        { MIS: 20 },
+      ].forEach(({ MIS }) => {
+        it(`should limit and negotiate number of incoming streams to ${MIS} correctly`, async () => {
+          await socketpairFactory.withSocketpair({
+            options: {
+              client: {
+                MIS
+              },
+
+              server: {
+                socket: {
+                  // always request more than MIS
+                  OS: MIS + 10
+                }
+              }
+            },
+
+            test: ({ server, client }) => {
+              const serverStatus = server.status();
+              assert.strictEqual(serverStatus.numberOfOutgoingStreams, MIS);
+
+              const clientStatus = client.status();
+              assert.strictEqual(clientStatus.numberOfIncomingStreams, MIS);
             }
           });
         });
@@ -122,11 +158,12 @@ describe("socket", function () {
         it(`should set and negotiate number of outgoing streams to ${OS} correctly`, async () => {
           await socketpairFactory.withSocketpair({
             options: {
-              server: {
-                client: {
-                  MIS: OS + 10
-                },
+              client: {
+                // always accept more than OS
+                MIS: OS + 10
+              },
 
+              server: {
                 socket: {
                   OS
                 }
@@ -139,6 +176,39 @@ describe("socket", function () {
 
               const clientStatus = client.status();
               assert.strictEqual(clientStatus.numberOfIncomingStreams, OS);
+            }
+          });
+        });
+      });
+
+      [
+        { MIS: 1 },
+        { MIS: 2 },
+        { MIS: 5 },
+        { MIS: 10 },
+        { MIS: 20 },
+      ].forEach(({ MIS }) => {
+        it(`should limit and negotiate number of incoming streams to ${MIS} correctly`, async () => {
+          await socketpairFactory.withSocketpair({
+            options: {
+              client: {
+                // always request more than MIS
+                OS: MIS + 10
+              },
+
+              server: {
+                socket: {
+                  MIS
+                }
+              }
+            },
+
+            test: ({ server, client }) => {
+              const serverStatus = server.status();
+              assert.strictEqual(serverStatus.numberOfIncomingStreams, MIS);
+
+              const clientStatus = client.status();
+              assert.strictEqual(clientStatus.numberOfOutgoingStreams, MIS);
             }
           });
         });
