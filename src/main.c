@@ -479,37 +479,43 @@ napi_value do_sctp_recvmsg(napi_env env, napi_callback_info info) {
   return js_ret_obj;
 }
 
-napi_value do_sctp_sendmsg(napi_env env, napi_callback_info info) {
+napi_value do_sctp_sendv(napi_env env, napi_callback_info info) {
   int32_t fd;
   napi_value js_args_obj;
+  napi_value js_sndinfo_obj;
   napi_value js_ret_obj;
   napi_status status;
   void* buffer_addr;
   size_t buffer_length;
-  uint32_t ppid;
   uint32_t flags;
-  uint32_t stream_no;
-  uint32_t timetolive;
-  uint32_t context;
-  struct sockaddr* to_address;
-  size_t to_address_length;
   int bytes_sent;
+  struct sctp_sendv_spa spa;
+  struct iovec iov[1];
+  const int iovcnt = sizeof(iov) / sizeof(iov[0]);
+
+  memset(&spa, 0, sizeof(spa));
 
   status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
   if (status != napi_ok) {
     return napi_helper_get_undefined(env);
   }
 
-  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "do_sctp_sendmsg: fd must be provided as number");
-  napi_helper_require_named_buffer_asserted(env, js_args_obj, "message", (void**) &buffer_addr, &buffer_length, "do_sctp_sendmsg: message must be provided as buffer");
-  napi_helper_require_named_buffer_asserted(env, js_args_obj, "sockaddr", (void**) &to_address, &to_address_length, "do_sctp_sendmsg: sockaddr must be provided as buffer");
-  ppid = napi_helper_require_named_uint32_asserted(env, js_args_obj, "ppid", "do_sctp_sendmsg: ppid must be provided as number");
-  flags = napi_helper_require_named_uint32_asserted(env, js_args_obj, "flags", "do_sctp_sendmsg: flags must be provided as number");
-  stream_no = napi_helper_require_named_uint32_asserted(env, js_args_obj, "streamNumber", "do_sctp_sendmsg: streamNumber must be provided as number");
-  timetolive = napi_helper_require_named_uint32_asserted(env, js_args_obj, "timeToLive", "do_sctp_sendmsg: timeToLive must be provided as number");
-  context = napi_helper_require_named_uint32_asserted(env, js_args_obj, "context", "do_sctp_sendmsg: context must be provided as number");
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "do_sctp_sendv: fd must be provided as number");
+  napi_helper_require_named_buffer_asserted(env, js_args_obj, "message", (void**) &buffer_addr, &buffer_length, "do_sctp_sendv: message must be provided as buffer");
 
-  bytes_sent = sctp_sendmsg(fd, buffer_addr, buffer_length, to_address, to_address_length, htonl(ppid), flags, stream_no, timetolive, context);
+  iov[0].iov_base = buffer_addr;
+  iov[0].iov_len = buffer_length;
+
+  js_sndinfo_obj = napi_helper_require_named_object_asserted(env, js_args_obj, "sndinfo", "do_sctp_sendv: sndinfo must be provided as object");
+  spa.sendv_sndinfo.snd_sid = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "sid", "do_sctp_sendv: sndinfo.sid must be provided as number");
+  spa.sendv_sndinfo.snd_ppid = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "ppid", "do_sctp_sendv: sndinfo.ppid must be provided as number");
+  spa.sendv_sndinfo.snd_flags = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "flags", "do_sctp_sendv: sndinfo.flags must be provided as number");
+  spa.sendv_sndinfo.snd_context = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "context", "do_sctp_sendv: sndinfo.context must be provided as number");
+  spa.sendv_flags = SCTP_SEND_SNDINFO_VALID;
+
+  flags = napi_helper_require_named_uint32_asserted(env, js_args_obj, "flags", "do_sctp_sendv: flags must be provided as number");
+
+  bytes_sent = sctp_sendv(fd, iov, iovcnt, NULL, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, flags);
 
   js_ret_obj = napi_helper_create_object_asserted(env);
 
@@ -697,7 +703,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "bind_ipv4", bind_ipv4, NULL, "failed to add bind_ipv4");
   napi_helper_add_function_field_asserted(env, exports, "create_poller", create_poller, NULL, "failed to add create_poller");
   napi_helper_add_function_field_asserted(env, exports, "sctp_recvmsg", do_sctp_recvmsg, NULL, "failed to add sctp_recvmsg");
-  napi_helper_add_function_field_asserted(env, exports, "sctp_sendmsg", do_sctp_sendmsg, NULL, "failed to add sctp_sendmsg");
+  napi_helper_add_function_field_asserted(env, exports, "sctp_sendv", do_sctp_sendv, NULL, "failed to add sctp_sendmsg");
   napi_helper_add_function_field_asserted(env, exports, "listen", do_listen, NULL, "failed to add listen");
   napi_helper_add_function_field_asserted(env, exports, "accept", do_accept, NULL, "failed to add accept");
   napi_helper_add_function_field_asserted(env, exports, "connect", do_connect, NULL, "failed to add connect");
