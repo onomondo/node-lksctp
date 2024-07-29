@@ -84,25 +84,65 @@ describe("socket", function () {
         { OS: 50 },
         { OS: 200 }
       ].forEach(({ OS }) => {
-        it.only(`should set and negotiate number of outgoing streams to ${OS} correctly`, async () => {
+        it(`should set and negotiate number of outgoing streams to ${OS} correctly`, async () => {
           await socketpairFactory.withSocketpair({
             options: {
               client: {
                 OS
+              },
+
+              server: {
+                MIS: OS + 10
               }
             },
 
             test: ({ server, client }) => {
               const serverStatus = server.status();
-              assert(serverStatus.numberOfIncomingStreams === OS);
+              assert.strictEqual(serverStatus.numberOfIncomingStreams, OS);
 
               const clientStatus = client.status();
-              assert(clientStatus.numberOfOutgoingStreams === OS);
+              assert.strictEqual(clientStatus.numberOfOutgoingStreams, OS);
             }
           });
         });
       });
 
+    });
+
+    describe("server", () => {
+      [
+        { OS: 1 },
+        { OS: 2 },
+        { OS: 5 },
+        { OS: 10 },
+        { OS: 20 },
+        { OS: 50 },
+        { OS: 200 }
+      ].forEach(({ OS }) => {
+        it(`should set and negotiate number of outgoing streams to ${OS} correctly`, async () => {
+          await socketpairFactory.withSocketpair({
+            options: {
+              server: {
+                client: {
+                  MIS: OS + 10
+                },
+
+                socket: {
+                  OS
+                }
+              }
+            },
+
+            test: ({ server, client }) => {
+              const serverStatus = server.status();
+              assert.strictEqual(serverStatus.numberOfOutgoingStreams, OS);
+
+              const clientStatus = client.status();
+              assert.strictEqual(clientStatus.numberOfIncomingStreams, OS);
+            }
+          });
+        });
+      });
     });
   });
 });
