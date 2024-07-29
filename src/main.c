@@ -558,6 +558,30 @@ napi_value get_socket_error(napi_env env, napi_callback_info info) {
   return js_ret_obj;
 }
 
+napi_value do_getsockname(napi_env env, napi_callback_info info) {
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_status status;
+  struct sockaddr* sockaddr_ptr;
+  size_t sockaddr_length;
+  socklen_t sockaddr_length_as_socklen;
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "get_socket_error: fd must be provided as number");
+  napi_helper_require_named_buffer_asserted(env, js_args_obj, "sockaddr", &sockaddr_ptr, &sockaddr_length, "bind_ipv4: failed to get sockaddr buffer");
+
+  sockaddr_length_as_socklen = sockaddr_length;
+
+  errno = 0;
+  getsockname(fd, sockaddr_ptr, &sockaddr_length_as_socklen);
+
+  return napi_helper_create_errno_result_asserted(env, errno);
+}
+
 napi_value close_fd(napi_env env, napi_callback_info info) {
   int rc;
   int32_t fd;
@@ -595,6 +619,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "accept", do_accept, NULL, "failed to add accept");
   napi_helper_add_function_field_asserted(env, exports, "connect", do_connect, NULL, "failed to add connect");
   napi_helper_add_function_field_asserted(env, exports, "get_socket_error", get_socket_error, NULL, "failed to add get_socket_error");
+  napi_helper_add_function_field_asserted(env, exports, "getsockname", do_getsockname, NULL, "failed to add getsockname");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sack_info", setsockopt_sack_info, NULL, "failed to add setsockopt_sack_info");
 
   return exports;
