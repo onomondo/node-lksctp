@@ -671,6 +671,33 @@ napi_value do_getsockname(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno);
 }
 
+napi_value do_shutdown(napi_env env, napi_callback_info info) {
+  int rc;
+  int32_t fd;
+  int32_t how;
+  napi_value js_args_obj;
+  napi_status status;
+  int errno_value;
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "close_fd: fd must be provided as number");
+  how = napi_helper_require_named_int32_asserted(env, js_args_obj, "how", "close_fd: how must be provided as number");
+
+  rc = shutdown(fd, how);
+
+  if (rc != 0) {
+    errno_value = errno;
+  } else {
+    errno_value = 0;
+  }
+
+  return napi_helper_create_errno_result_asserted(env, errno_value);
+}
+
 napi_value close_fd(napi_env env, napi_callback_info info) {
   int rc;
   int32_t fd;
@@ -712,6 +739,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sack_info", setsockopt_sack_info, NULL, "failed to add setsockopt_sack_info");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_initmsg", setsockopt_sctp_initmsg, NULL, "failed to add setsockopt_sack_info");
   napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
+  napi_helper_add_function_field_asserted(env, exports, "shutdown", do_shutdown, NULL, "failed to add shutdown");
 
   return exports;
 }

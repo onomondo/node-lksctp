@@ -323,5 +323,102 @@ describe("socket", function () {
         });
       });
     });
+
+    describe("shutdown / abort", () => {
+
+      const testGracefulShutdown = async ({ sender, receiver }) => {
+        await new Promise((resolve, reject) => {
+          sender.on("error", (err) => {
+            reject(err);
+          });
+
+          receiver.on("error", (err) => {
+            reject(err);
+          });
+
+          receiver.on("end", () => {
+            resolve();
+          });
+
+          receiver.resume();
+          sender.resume();
+
+          sender.end();
+        });
+      };
+
+      const testBrokenPipeErrorOnRemoteShutdown = async ({ sender, receiver }) => {
+        await new Promise((resolve, reject) => {
+          receiver.on("error", (err) => {
+            reject(err);
+          });
+
+          sender.on("error", (err) => {
+            if (err.code === "EPIPE" && err.message === "Broken pipe") {
+              resolve();
+            } else {
+              reject(err);
+            }
+          });
+
+          sender.on("end", () => {
+            reject(Error("unexpected graceful end"));
+          });
+
+          receiver.end();
+
+          const packetToSend = Buffer.alloc(1000);
+          for (let i = 0; i < 10; i += 1) {
+            sender.write(packetToSend);
+          }
+
+          sender.resume();
+        });
+      };
+
+      it("should allow to shutdown the socket gracefully (client -> server)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testGracefulShutdown({
+              sender: client,
+              receiver: server
+            });
+          }
+        });
+      });
+
+      it("should give 'Broken pipe' (EPIPE) error when packets are queued on remote shutdown (client -> server)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testBrokenPipeErrorOnRemoteShutdown({
+              sender: client,
+              receiver: server
+            });
+          }
+        });
+      });
+
+      it("should allow to shutdown the socket gracefully (server -> client)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testGracefulShutdown({
+              sender: server,
+              receiver: client
+            });
+          }
+        });
+      });
+
+      it("should give 'Broken pipe' (EPIPE) error when packets are queued on remote shutdown (server -> client)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testBrokenPipeErrorOnRemoteShutdown({
+              sender: server,
+              receiver: client
+            });
+          }
+        });
+      });
+    });
   });
 });
