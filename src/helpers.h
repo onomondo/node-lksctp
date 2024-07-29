@@ -281,6 +281,19 @@ static napi_value napi_helper_create_int32(napi_env env, int32_t value) {
   return js_value;
 }
 
+static napi_value napi_helper_create_uint64(napi_env env, uint64_t value) {
+  napi_value js_value;
+  napi_status status;
+
+  status = napi_create_bigint_uint64(env, value, &js_value);
+  if (status != napi_ok) {
+    napi_throw_error(env, NULL, "failed to create uint64");
+    return napi_helper_get_undefined(env);
+  }
+
+  return js_value;
+}
+
 static void napi_helper_set_named_property_asserted(napi_env env, napi_value obj, const char* name, napi_value value) {
   napi_status status;
 
@@ -295,6 +308,18 @@ static void napi_helper_add_int32_field_asserted(napi_env env, napi_value obj, c
   napi_status status;
 
   js_value = napi_helper_create_int32(env, value);
+
+  status = napi_set_named_property(env, obj, name, js_value);
+  if (status != napi_ok) {
+    abort();
+  }
+}
+
+static void napi_helper_add_uint64_field_asserted(napi_env env, napi_value obj, const char* name, uint64_t value) {
+  napi_value js_value;
+  napi_status status;
+
+  js_value = napi_helper_create_uint64(env, value);
 
   status = napi_set_named_property(env, obj, name, js_value);
   if (status != napi_ok) {

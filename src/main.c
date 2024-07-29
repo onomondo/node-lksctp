@@ -64,6 +64,59 @@ napi_value setsockopt_sack_info(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno_value);
 }
 
+
+napi_value getsockopt_sctp_status(napi_env env, napi_callback_info info) {
+  int rc;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_value js_result;
+  napi_value js_info;
+  napi_status status;
+  struct sctp_info sctpi;
+  socklen_t sctpi_len = sizeof(sctpi);
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "setsockopt_sack_info: fd must be provided as number");
+
+  rc = getsockopt(fd, IPPROTO_SCTP, SCTP_STATUS, &sctpi, &sctpi_len);
+  if (rc < 0) {
+    return napi_helper_create_errno_result_asserted(env, errno);
+  }
+
+  if (sctpi_len < offsetof(struct sctp_info, sctpi_isacks)) {
+    abort_with_message("getsockopt_sctp_status: unexpected length of sctp_info");
+  }
+
+  js_info = napi_helper_create_object_asserted(env);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_tag", sctpi.sctpi_tag);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_state", sctpi.sctpi_state);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_rwnd", sctpi.sctpi_rwnd);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_unackdata", sctpi.sctpi_unackdata);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_penddata", sctpi.sctpi_penddata);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_instrms", sctpi.sctpi_instrms);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_outstrms", sctpi.sctpi_outstrms);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_fragmentation_point", sctpi.sctpi_fragmentation_point);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_inqueue", sctpi.sctpi_inqueue);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_outqueue", sctpi.sctpi_outqueue);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_overall_error", sctpi.sctpi_overall_error);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_max_burst", sctpi.sctpi_max_burst);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_maxseg", sctpi.sctpi_maxseg);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_peer_rwnd", sctpi.sctpi_peer_rwnd);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_peer_tag", sctpi.sctpi_peer_tag);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_peer_capable", sctpi.sctpi_peer_capable);
+  napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_peer_sack", sctpi.sctpi_peer_sack);
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "errno", 0);
+  napi_helper_set_named_property_asserted(env, js_result, "info", js_info);
+
+  return js_result;
+}
+
 static napi_value bind_ipv4(napi_env env, napi_callback_info info) {
   int32_t fd;
   int rc;
@@ -621,6 +674,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "get_socket_error", get_socket_error, NULL, "failed to add get_socket_error");
   napi_helper_add_function_field_asserted(env, exports, "getsockname", do_getsockname, NULL, "failed to add getsockname");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sack_info", setsockopt_sack_info, NULL, "failed to add setsockopt_sack_info");
+  napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
 
   return exports;
 }
