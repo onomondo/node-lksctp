@@ -5,6 +5,7 @@
     "description": "Node.js bindings for Linux SCTP",
     "main": "lib/index.js",
     "devDependencies": {
+        "mocha": "^10.7.0",
         "node-gyp": "^10.1.0",
         "raw-socket": "^1.8.1",
         "sctp": "^1.0.0"
