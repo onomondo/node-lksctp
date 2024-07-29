@@ -215,4 +215,108 @@ describe("socket", function () {
       });
     });
   });
+
+  describe("send / receive", () => {
+    const sendAndReceiveTest = ({ sender, receiver, packetToSend }) => {
+      return new Promise((resolve, reject) => {
+        let writeCallbackCalled = false;
+        let endCallbackCalled = false;
+        let packetCorrectlyReceived = false;
+
+        const maybeResolve = () => {
+          if (!writeCallbackCalled) {
+            return;
+          }
+
+          if (!endCallbackCalled) {
+            return;
+          }
+
+          if (!packetCorrectlyReceived) {
+            return;
+          }
+
+          resolve();
+        };
+
+        sender.write(packetToSend, (writeError) => {
+          if (writeError) {
+            reject(writeError);
+          }
+
+          writeCallbackCalled = true;
+          maybeResolve();
+        });
+
+        sender.end(() => {
+          endCallbackCalled = true;
+          maybeResolve();
+        });
+
+        sender.on("error", (err) => {
+          reject(err);
+        });
+
+        receiver.on("data", (packetReceived) => {
+          try {
+            assert.deepEqual(packetReceived, packetToSend);
+          } catch (ex) {
+            reject(ex);
+          }
+
+          packetCorrectlyReceived = true;
+          maybeResolve();
+        });
+
+        receiver.on("error", (err) => {
+          reject(err);
+        });
+      });
+    };
+
+    [
+      { packetSize: 1 },
+      { packetSize: 5 },
+      { packetSize: 10 },
+      { packetSize: 100 },
+      { packetSize: 2000 },
+      { packetSize: 30000 }
+    ].forEach(({ packetSize }) => {
+      it(`should send packets (${packetSize} bytes) from client to server correctly`, async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+
+            const packetToSend = Buffer.alloc(packetSize);
+            for (let i = 0; i < packetSize; i += 1) {
+              packetToSend[i] = i % 256;
+            }
+
+            await sendAndReceiveTest({
+              sender: client,
+              receiver: server,
+              packetToSend
+            });
+          }
+        });
+      });
+
+      it(`should send packets (${packetSize} bytes) from server to client correctly`, async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+
+            const packetToSend = Buffer.alloc(packetSize);
+            for (let i = 0; i < packetSize; i += 1) {
+              packetToSend[i] = i % 256;
+            }
+
+            await sendAndReceiveTest({
+              sender: server,
+              receiver: client,
+              packetToSend
+            });
+          }
+        });
+      });
+    });
+  });
 });
