@@ -9,5 +9,8 @@
         "node-gyp": "^10.1.0",
         "raw-socket": "^1.8.1",
         "sctp": "^1.0.0"
+    },
+    "scripts": {
+        "test": "mocha"
     }
 }
