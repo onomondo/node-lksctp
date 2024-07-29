@@ -64,7 +64,6 @@ napi_value setsockopt_sack_info(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno_value);
 }
 
-
 napi_value getsockopt_sctp_status(napi_env env, napi_callback_info info) {
   int rc;
   int32_t fd;
@@ -115,6 +114,37 @@ napi_value getsockopt_sctp_status(napi_env env, napi_callback_info info) {
   napi_helper_set_named_property_asserted(env, js_result, "info", js_info);
 
   return js_result;
+}
+
+napi_value setsockopt_sctp_initmsg(napi_env env, napi_callback_info info) {
+  int rc;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_status status;
+  int errno_value;
+  struct sctp_initmsg initmsg;
+
+  memset(&initmsg, 0, sizeof(initmsg));
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "setsockopt_sctp_initmsg: fd must be provided as number");
+  initmsg.sinit_num_ostreams = napi_helper_require_named_uint32_asserted(env, js_args_obj, "sinit_num_ostreams", "setsockopt_sctp_initmsg: sinit_num_ostreams must be provided as number");
+  initmsg.sinit_max_instreams = napi_helper_require_named_uint32_asserted(env, js_args_obj, "sinit_max_instreams", "setsockopt_sctp_initmsg: sinit_max_instreams must be provided as number");
+  initmsg.sinit_max_attempts = napi_helper_require_named_uint32_asserted(env, js_args_obj, "sinit_max_attempts", "setsockopt_sctp_initmsg: sinit_max_attempts must be provided as number");
+  initmsg.sinit_max_init_timeo = napi_helper_require_named_uint32_asserted(env, js_args_obj, "sinit_max_init_timeo", "setsockopt_sctp_initmsg: sinit_max_init_timeo must be provided as number");
+
+  rc = setsockopt(fd, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg));
+  if (rc < 0) {
+    errno_value = errno;
+  } else {
+    errno_value = 0;
+  }
+
+  return napi_helper_create_errno_result_asserted(env, errno_value);
 }
 
 static napi_value bind_ipv4(napi_env env, napi_callback_info info) {
@@ -674,6 +704,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "get_socket_error", get_socket_error, NULL, "failed to add get_socket_error");
   napi_helper_add_function_field_asserted(env, exports, "getsockname", do_getsockname, NULL, "failed to add getsockname");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sack_info", setsockopt_sack_info, NULL, "failed to add setsockopt_sack_info");
+  napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_initmsg", setsockopt_sctp_initmsg, NULL, "failed to add setsockopt_sack_info");
   napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
 
   return exports;

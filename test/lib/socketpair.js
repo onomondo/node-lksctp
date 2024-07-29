@@ -79,10 +79,10 @@ const create = async ({ options } = {}) => {
   });
 };
 
-const withSocketpair = async (fn) => {
-  const { server, client } = await create();
+const withSocketpair = async ({ options, test }) => {
+  const { server, client } = await create({ options });
   try {
-    await fn({ server, client });
+    await test({ server, client });
   } finally {
     server.destroy();
     client.destroy();
