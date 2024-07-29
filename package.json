@@ -12,6 +12,7 @@
         "sctp": "^1.0.0"
     },
     "scripts": {
+        "lint": "eslint .",
         "test": "mocha"
     }
 }
