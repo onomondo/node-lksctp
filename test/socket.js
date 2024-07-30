@@ -490,6 +490,32 @@ describe("socket", function () {
             });
           });
         });
+
+        [
+          { sid: 0 },
+          { sid: 1 },
+          { sid: 2 },
+        ].forEach(({ sid }) => {
+          it(`should support sid ${sid} correctly`, async () => {
+            await socketpairFactory.withSocketpair({
+              test: async ({ server, client }) => {
+                const packetToSend = generatePseudoRandomBuffer({ size: 1000 });
+                packetToSend.sid = sid;
+
+                const { packetsReceived } = await transmitAndShutdown({
+                  sender: client,
+                  receiver: server,
+                  packetsToSend: [packetToSend]
+                });
+
+                assert.strictEqual(packetsReceived.length, 1);
+                const packetReceived = packetsReceived[0];
+
+                assert.strictEqual(packetReceived.sid, sid);
+              }
+            });
+          });
+        });
       });
     });
   });
