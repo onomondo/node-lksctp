@@ -147,6 +147,32 @@ napi_value setsockopt_sctp_initmsg(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno_value);
 }
 
+napi_value setsockopt_sctp_recvrcvinfo(napi_env env, napi_callback_info info) {
+  int rc;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_status status;
+  int errno_value;
+  int value;
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "setsockopt_sctp_recvrcvinfo: fd must be provided as number");
+  value = napi_helper_require_named_int32_asserted(env, js_args_obj, "value", "setsockopt_sctp_recvrcvinfo: value must be provided as number");
+
+  rc = setsockopt(fd, IPPROTO_SCTP, SCTP_RECVRCVINFO, &value, sizeof(value));
+  if (rc < 0) {
+    errno_value = errno;
+  } else {
+    errno_value = 0;
+  }
+
+  return napi_helper_create_errno_result_asserted(env, errno_value);
+}
+
 static napi_value bind_ipv4(napi_env env, napi_callback_info info) {
   int32_t fd;
   int rc;
@@ -440,12 +466,12 @@ static napi_value create_poller(napi_env env, napi_callback_info info) {
   return js_poll_handle;
 }
 
-napi_value do_sctp_recvmsg(napi_env env, napi_callback_info info) {
+napi_value do_sctp_recvv(napi_env env, napi_callback_info info) {
   int rc;
   int32_t fd;
   napi_value js_args_obj;
-  size_t info_buffer_length;
   napi_value js_ret_obj;
+  napi_value js_rcvinfo_obj;
   napi_status status;
   void* buffer_addr;
   size_t buffer_length;
@@ -453,20 +479,26 @@ napi_value do_sctp_recvmsg(napi_env env, napi_callback_info info) {
   size_t from_address_buffer_length;
   socklen_t from_address_length_as_socklen;
   int msg_flags = 0;
-  struct sctp_sndrcvinfo* sinfo = NULL;
+  struct iovec iov[1];
+  const int iovcnt = sizeof(iov) / sizeof(iov[0]);
+  struct sctp_rcvinfo rcv;
+  socklen_t infolen = sizeof(rcv);
+  unsigned int info_type = 0;
 
   status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
   if (status != napi_ok) {
     return napi_helper_get_undefined(env);
   }
 
-  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "do_sctp_recvmsg: fd must be provided as number");
-  napi_helper_require_named_buffer_asserted(env, js_args_obj, "messageBuffer", (void**) &buffer_addr, &buffer_length, "do_sctp_recvmsg: messageBuffer must be provided as buffer");
-  napi_helper_require_named_buffer_asserted(env, js_args_obj, "infoBuffer", (void**) &sinfo, &info_buffer_length, "do_sctp_recvmsg: infoBuffer must be provided as buffer");
-  napi_helper_require_named_buffer_asserted(env, js_args_obj, "sockaddr", (void**) &from_address_pointer, &from_address_buffer_length, "do_sctp_recvmsg: sockaddr must be provided as buffer");
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "do_sctp_recvv: fd must be provided as number");
+  napi_helper_require_named_buffer_asserted(env, js_args_obj, "messageBuffer", (void**) &buffer_addr, &buffer_length, "do_sctp_recvv: messageBuffer must be provided as buffer");
+  napi_helper_require_named_buffer_asserted(env, js_args_obj, "sockaddr", (void**) &from_address_pointer, &from_address_buffer_length, "do_sctp_recvv: sockaddr must be provided as buffer");
+
+  iov[0].iov_base = buffer_addr;
+  iov[0].iov_len = buffer_length;
 
   from_address_length_as_socklen = from_address_buffer_length;
-  rc = sctp_recvmsg(fd, buffer_addr, buffer_length, from_address_pointer, &from_address_length_as_socklen, sinfo, &msg_flags);
+  rc = sctp_recvv(fd, iov, iovcnt, from_address_pointer, &from_address_length_as_socklen, &rcv, &infolen, &info_type, &msg_flags);
   if (rc < 0) {
     return napi_helper_create_errno_result_asserted(env, errno);
   }
@@ -475,6 +507,26 @@ napi_value do_sctp_recvmsg(napi_env env, napi_callback_info info) {
   napi_helper_add_int32_field_asserted(env, js_ret_obj, "errno", 0);
   napi_helper_add_int32_field_asserted(env, js_ret_obj, "bytesReceived", rc);
   napi_helper_add_int32_field_asserted(env, js_ret_obj, "flags", msg_flags);
+
+  switch (info_type) {
+    case SCTP_RECVV_RCVINFO: {
+      js_rcvinfo_obj = napi_helper_create_object_asserted(env);
+      napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "sid", rcv.rcv_sid);
+      napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "ssn", rcv.rcv_ssn);
+      napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "flags", rcv.rcv_flags);
+      napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "ppid", rcv.rcv_ppid);
+      napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "context", rcv.rcv_context);
+
+      napi_helper_set_named_property_asserted(env, js_ret_obj, "rcvinfo", js_rcvinfo_obj);
+
+      break;
+    }
+    default: {
+      // SCTP_RECVV_NOINFO
+      // and fallback
+      break;
+    }
+  }
 
   return js_ret_obj;
 }
@@ -729,7 +781,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "close_fd", close_fd, NULL, "failed to add close_fd");
   napi_helper_add_function_field_asserted(env, exports, "bind_ipv4", bind_ipv4, NULL, "failed to add bind_ipv4");
   napi_helper_add_function_field_asserted(env, exports, "create_poller", create_poller, NULL, "failed to add create_poller");
-  napi_helper_add_function_field_asserted(env, exports, "sctp_recvmsg", do_sctp_recvmsg, NULL, "failed to add sctp_recvmsg");
+  napi_helper_add_function_field_asserted(env, exports, "sctp_recvv", do_sctp_recvv, NULL, "failed to add sctp_recvv");
   napi_helper_add_function_field_asserted(env, exports, "sctp_sendv", do_sctp_sendv, NULL, "failed to add sctp_sendmsg");
   napi_helper_add_function_field_asserted(env, exports, "listen", do_listen, NULL, "failed to add listen");
   napi_helper_add_function_field_asserted(env, exports, "accept", do_accept, NULL, "failed to add accept");
@@ -737,7 +789,8 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "get_socket_error", get_socket_error, NULL, "failed to add get_socket_error");
   napi_helper_add_function_field_asserted(env, exports, "getsockname", do_getsockname, NULL, "failed to add getsockname");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sack_info", setsockopt_sack_info, NULL, "failed to add setsockopt_sack_info");
-  napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_initmsg", setsockopt_sctp_initmsg, NULL, "failed to add setsockopt_sack_info");
+  napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_initmsg", setsockopt_sctp_initmsg, NULL, "failed to add setsockopt_sctp_initmsg");
+  napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_recvrcvinfo", setsockopt_sctp_recvrcvinfo, NULL, "failed to add setsockopt_sctp_recvrcvinfo");
   napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
   napi_helper_add_function_field_asserted(env, exports, "shutdown", do_shutdown, NULL, "failed to add shutdown");
 
