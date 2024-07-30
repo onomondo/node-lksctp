@@ -8,6 +8,54 @@ process.on("unhandledRejection", (reason) => {
   throw reason;
 });
 
+const generatePseudoRandomBuffer = ({ size }) => {
+  const result = Buffer.alloc(size);
+  for (let i = 0; i < 1000; i += 1) {
+    result[i] = i % 256;
+  }
+  return result;
+};
+
+const transmitAndShutdown = async ({ sender, receiver, packetsToSend }) => {
+  let packetsReceived = [];
+
+  await new Promise((resolve, reject) => {
+    sender.on("error", (err) => {
+      reject(err);
+    });
+
+    receiver.on("error", (err) => {
+      reject(err);
+    });
+
+    receiver.on("data", (packetReceived) => {
+      packetsReceived = [
+        ...packetsReceived,
+        packetReceived
+      ];
+    });
+
+    receiver.on("end", () => {
+      resolve();
+    });
+
+    receiver.resume();
+    sender.resume();
+
+    packetsToSend.forEach((packetToSend) => {
+      sender.write(packetToSend);
+    });
+
+    sender.end();
+  });
+
+  return { packetsReceived };
+};
+
+const buffersEqual = ({ buffer1, buffer2 }) => {
+  return Buffer.compare(buffer1, buffer2) === 0;
+};
+
 describe("socket", function () {
   this.timeout(20000);
 
@@ -263,10 +311,9 @@ describe("socket", function () {
         });
 
         receiver.on("data", (packetReceived) => {
-          try {
-            assert.deepEqual(packetReceived, packetToSend);
-          } catch (ex) {
-            reject(ex);
+          if (!buffersEqual({ buffer1: packetReceived, buffer2: packetToSend })) {
+            reject(Error("received packet does not match sent packet"));
+            return;
           }
 
           packetCorrectlyReceived = true;
@@ -291,10 +338,7 @@ describe("socket", function () {
         await socketpairFactory.withSocketpair({
           test: async ({ server, client }) => {
 
-            const packetToSend = Buffer.alloc(packetSize);
-            for (let i = 0; i < packetSize; i += 1) {
-              packetToSend[i] = i % 256;
-            }
+            const packetToSend = generatePseudoRandomBuffer({ size: packetSize });
 
             await sendAndReceiveTest({
               sender: client,
@@ -309,10 +353,7 @@ describe("socket", function () {
         await socketpairFactory.withSocketpair({
           test: async ({ server, client }) => {
 
-            const packetToSend = Buffer.alloc(packetSize);
-            for (let i = 0; i < packetSize; i += 1) {
-              packetToSend[i] = i % 256;
-            }
+            const packetToSend = generatePseudoRandomBuffer({ size: packetSize });
 
             await sendAndReceiveTest({
               sender: server,
@@ -367,7 +408,7 @@ describe("socket", function () {
 
           receiver.end();
 
-          const packetToSend = Buffer.alloc(1000);
+          const packetToSend = generatePseudoRandomBuffer({ size: 1000 });
           for (let i = 0; i < 10; i += 1) {
             sender.write(packetToSend);
           }
@@ -417,6 +458,37 @@ describe("socket", function () {
               receiver: client
             });
           }
+        });
+      });
+    });
+
+    describe("chunk attributes", () => {
+      describe("ppid", () => {
+
+        [
+          { ppid: 0 },
+          { ppid: 1 },
+          { ppid: 2 },
+        ].forEach(({ ppid }) => {
+          it(`should transmit attribute ppid ${ppid} correctly`, async () => {
+            await socketpairFactory.withSocketpair({
+              test: async ({ server, client }) => {
+                const packetToSend = generatePseudoRandomBuffer({ size: 1000 });
+                packetToSend.ppid = ppid;
+
+                const { packetsReceived } = await transmitAndShutdown({
+                  sender: client,
+                  receiver: server,
+                  packetsToSend: [packetToSend]
+                });
+
+                assert.equal(packetsReceived.length, 1);
+                const packetReceived = packetsReceived[0];
+
+                assert.equal(packetReceived.ppid, ppid);
+              }
+            });
+          });
         });
       });
     });
