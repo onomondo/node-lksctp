@@ -482,10 +482,10 @@ describe("socket", function () {
                   packetsToSend: [packetToSend]
                 });
 
-                assert.equal(packetsReceived.length, 1);
+                assert.strictEqual(packetsReceived.length, 1);
                 const packetReceived = packetsReceived[0];
 
-                assert.equal(packetReceived.ppid, ppid);
+                assert.strictEqual(packetReceived.ppid, ppid);
               }
             });
           });
