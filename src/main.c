@@ -202,6 +202,32 @@ napi_value setsockopt_linger(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno_value);
 }
 
+napi_value setsockopt_nodelay(napi_env env, napi_callback_info info) {
+  int rc;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_status status;
+  int errno_value;
+  int value;
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "setsockopt_nodelay: fd must be provided as number");
+  value = napi_helper_require_named_int32_asserted(env, js_args_obj, "value", "setsockopt_nodelay: value must be provided as number");
+
+  rc = setsockopt(fd, IPPROTO_SCTP, SCTP_NODELAY, &value, sizeof(value));
+  if (rc < 0) {
+    errno_value = errno;
+  } else {
+    errno_value = 0;
+  }
+
+  return napi_helper_create_errno_result_asserted(env, errno_value);
+}
+
 static napi_value bind_ipv4(napi_env env, napi_callback_info info) {
   int32_t fd;
   int rc;
@@ -821,6 +847,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_initmsg", setsockopt_sctp_initmsg, NULL, "failed to add setsockopt_sctp_initmsg");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_recvrcvinfo", setsockopt_sctp_recvrcvinfo, NULL, "failed to add setsockopt_sctp_recvrcvinfo");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_linger", setsockopt_linger, NULL, "failed to add setsockopt_linger");
+  napi_helper_add_function_field_asserted(env, exports, "setsockopt_nodelay", setsockopt_nodelay, NULL, "failed to add setsockopt_nodelay");
   napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
   napi_helper_add_function_field_asserted(env, exports, "shutdown", do_shutdown, NULL, "failed to add shutdown");
 

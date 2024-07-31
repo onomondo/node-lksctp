@@ -630,5 +630,22 @@ describe("socket", function () {
         });
       });
     });
+
+    describe("socket parameters", () => {
+      it(`should support setNoDelay`, async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            server.setNoDelay(true);
+            server.setNoDelay(false);
+
+            client.setNoDelay(true);
+            client.setNoDelay(false);
+
+            server.destroy();
+            client.destroy();
+          }
+        });
+      });
+    });
   });
 });
