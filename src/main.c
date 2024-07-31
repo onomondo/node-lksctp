@@ -514,7 +514,7 @@ napi_value do_sctp_recvv(napi_env env, napi_callback_info info) {
       napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "sid", rcv.rcv_sid);
       napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "ssn", rcv.rcv_ssn);
       napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "flags", rcv.rcv_flags);
-      napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "ppid", rcv.rcv_ppid);
+      napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "ppid", ntohl(rcv.rcv_ppid));
       napi_helper_add_uint64_field_asserted(env, js_rcvinfo_obj, "context", rcv.rcv_context);
 
       napi_helper_set_named_property_asserted(env, js_ret_obj, "rcvinfo", js_rcvinfo_obj);
@@ -560,7 +560,7 @@ napi_value do_sctp_sendv(napi_env env, napi_callback_info info) {
 
   js_sndinfo_obj = napi_helper_require_named_object_asserted(env, js_args_obj, "sndinfo", "do_sctp_sendv: sndinfo must be provided as object");
   spa.sendv_sndinfo.snd_sid = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "sid", "do_sctp_sendv: sndinfo.sid must be provided as number");
-  spa.sendv_sndinfo.snd_ppid = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "ppid", "do_sctp_sendv: sndinfo.ppid must be provided as number");
+  spa.sendv_sndinfo.snd_ppid = htonl(napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "ppid", "do_sctp_sendv: sndinfo.ppid must be provided as number"));
   spa.sendv_sndinfo.snd_flags = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "flags", "do_sctp_sendv: sndinfo.flags must be provided as number");
   spa.sendv_sndinfo.snd_context = napi_helper_require_named_uint32_asserted(env, js_sndinfo_obj, "context", "do_sctp_sendv: sndinfo.context must be provided as number");
   spa.sendv_flags = SCTP_SEND_SNDINFO_VALID;
