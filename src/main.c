@@ -173,6 +173,35 @@ napi_value setsockopt_sctp_recvrcvinfo(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno_value);
 }
 
+napi_value setsockopt_linger(napi_env env, napi_callback_info info) {
+  int rc;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_status status;
+  int errno_value;
+  struct linger l;
+
+  memset(&l, 0, sizeof(l));
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "setsockopt_linger: fd must be provided as number");
+  l.l_onoff = napi_helper_require_named_int32_asserted(env, js_args_obj, "onoff", "setsockopt_linger: onoff must be provided as number");
+  l.l_linger = napi_helper_require_named_int32_asserted(env, js_args_obj, "linger", "setsockopt_linger: linger must be provided as number");
+
+  rc = setsockopt(fd, SOL_SOCKET, SO_LINGER, &l, sizeof(l));
+  if (rc < 0) {
+    errno_value = errno;
+  } else {
+    errno_value = 0;
+  }
+
+  return napi_helper_create_errno_result_asserted(env, errno_value);
+}
+
 static napi_value bind_ipv4(napi_env env, napi_callback_info info) {
   int32_t fd;
   int rc;
@@ -791,6 +820,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sack_info", setsockopt_sack_info, NULL, "failed to add setsockopt_sack_info");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_initmsg", setsockopt_sctp_initmsg, NULL, "failed to add setsockopt_sctp_initmsg");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_recvrcvinfo", setsockopt_sctp_recvrcvinfo, NULL, "failed to add setsockopt_sctp_recvrcvinfo");
+  napi_helper_add_function_field_asserted(env, exports, "setsockopt_linger", setsockopt_linger, NULL, "failed to add setsockopt_linger");
   napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
   napi_helper_add_function_field_asserted(env, exports, "shutdown", do_shutdown, NULL, "failed to add shutdown");
 

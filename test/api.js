@@ -1,6 +1,6 @@
 const lksctp = require("../lib/index.js");
 
-describe.only("api", () => {
+describe("api", () => {
   describe("server", () => {
     it("should support createServer with no arguments", () => {
       const server = lksctp.createServer();

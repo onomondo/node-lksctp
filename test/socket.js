@@ -2,6 +2,7 @@
 
 const assert = require("node:assert");
 const socketpairFactory = require("./lib/socketpair.js");
+const errors = require("../lib/errors.js");
 
 // make sure unhandeled rejections are thrown
 process.on("unhandledRejection", (reason) => {
@@ -14,6 +15,14 @@ const generatePseudoRandomBuffer = ({ size }) => {
     result[i] = i % 256;
   }
   return result;
+};
+
+const doesErrorRelateToCode = ({ error, code }) => {
+  const errno = errors.codeToErrno({ code });
+  const expectedMessage = errors.errnoToMessage({ errno });
+
+  const relates = error.code === code && error.message === expectedMessage;
+  return relates;
 };
 
 const transmitAndShutdown = async ({ sender, receiver, packetsToSend }) => {
@@ -365,7 +374,7 @@ describe("socket", function () {
       });
     });
 
-    describe("shutdown / abort", () => {
+    describe("shutdown", () => {
 
       const testGracefulShutdown = async ({ sender, receiver }) => {
         await new Promise((resolve, reject) => {
@@ -395,7 +404,7 @@ describe("socket", function () {
           });
 
           sender.on("error", (err) => {
-            if (err.code === "EPIPE" && err.message === "Broken pipe") {
+            if (doesErrorRelateToCode({ error: err, code: "EPIPE" })) {
               resolve();
             } else {
               reject(err);
@@ -428,7 +437,7 @@ describe("socket", function () {
         });
       });
 
-      it("should give 'Broken pipe' (EPIPE) error when packets are queued on remote shutdown (client -> server)", async () => {
+      it("should give EPIPE error when packets are queued on remote shutdown (client -> server)", async () => {
         await socketpairFactory.withSocketpair({
           test: async ({ server, client }) => {
             await testBrokenPipeErrorOnRemoteShutdown({
@@ -450,10 +459,111 @@ describe("socket", function () {
         });
       });
 
-      it("should give 'Broken pipe' (EPIPE) error when packets are queued on remote shutdown (server -> client)", async () => {
+      it("should give EPIPE error when packets are queued on remote shutdown (server -> client)", async () => {
         await socketpairFactory.withSocketpair({
           test: async ({ server, client }) => {
             await testBrokenPipeErrorOnRemoteShutdown({
+              sender: server,
+              receiver: client
+            });
+          }
+        });
+      });
+    });
+
+    describe("abort", () => {
+
+      const testAbort = async ({ sender, receiver }) => {
+        await new Promise((resolve, reject) => {
+          sender.on("error", (err) => {
+            reject(err);
+          });
+
+          receiver.on("error", (err) => {
+            if (doesErrorRelateToCode({ error: err, code: "ECONNRESET" })) {
+              resolve();
+            } else {
+              reject(err);
+            }
+          });
+
+          receiver.on("end", () => {
+            reject(Error("unexpected graceful end"));
+          });
+
+          receiver.resume();
+          sender.resume();
+
+          sender.destroy();
+        });
+      };
+
+      const testBrokenPipeErrorOnAbort = async ({ sender, receiver }) => {
+        await new Promise((resolve, reject) => {
+          receiver.on("error", (err) => {
+            reject(err);
+          });
+
+          sender.on("error", (err) => {
+            if (doesErrorRelateToCode({ error: err, code: "ECONNRESET" })) {
+              resolve();
+            } else {
+              reject(err);
+            }
+          });
+
+          sender.on("end", () => {
+            reject(Error("unexpected graceful end"));
+          });
+
+          receiver.destroy();
+
+          const packetToSend = generatePseudoRandomBuffer({ size: 1000 });
+          for (let i = 0; i < 10; i += 1) {
+            sender.write(packetToSend);
+          }
+
+          sender.resume();
+        });
+      };
+
+      it("should give ECONNRESET error when remote aborts (client -> server)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testAbort({
+              sender: client,
+              receiver: server
+            });
+          }
+        });
+      });
+
+      it("should give ECONNRESET error when packets are queued on remote abort (client -> server)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testBrokenPipeErrorOnAbort({
+              sender: client,
+              receiver: server
+            });
+          }
+        });
+      });
+
+      it("should give ECONNRESET error when remote aborts (server -> client)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testAbort({
+              sender: server,
+              receiver: client
+            });
+          }
+        });
+      });
+
+      it("should give ECONNRESET error when packets are queued on remote abort (server -> client)", async () => {
+        await socketpairFactory.withSocketpair({
+          test: async ({ server, client }) => {
+            await testBrokenPipeErrorOnAbort({
               sender: server,
               receiver: client
             });
