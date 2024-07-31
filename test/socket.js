@@ -490,7 +490,9 @@ describe("socket", function () {
             });
           });
         });
+      });
 
+      describe("sid", () => {
         [
           { sid: 0 },
           { sid: 1 },
