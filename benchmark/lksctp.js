@@ -4,8 +4,8 @@ const benchmark = require("./lib/index.js");
 const port = 12345;
 
 const server = lksctp.createServer({
-  sctp: {
-    sack_freq: 1
+  sack: {
+    freq: 1
   }
 });
 
