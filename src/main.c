@@ -818,6 +818,69 @@ napi_value do_getsockname(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno);
 }
 
+static napi_value create_buffer_array_from_dynamic_sockaddr_array(napi_env env, struct sockaddr* addrs, int num_addrs) {
+  int i;
+  napi_value js_buffer_array;
+  struct sockaddr* current_addr = addrs;
+
+  js_buffer_array = napi_helper_create_array_asserted(env, "create_buffer_array_from_dynamic_sockaddr_array: failed to create buffer array");
+
+  for(i = 0; i < num_addrs; i += 1) {
+    napi_value js_buffer;
+    size_t addr_length;
+
+    switch(current_addr->sa_family) {
+      case AF_INET: {
+        addr_length = sizeof(struct sockaddr_in);
+        break;
+      }
+      default: {
+        abort_with_message("create_buffer_array_from_dynamic_sockaddr_array: unsupported address family");
+        break;
+      }
+    }
+
+    js_buffer = napi_helper_create_buffer_copy_asserted(env, current_addr, addr_length, "create_buffer_array_from_dynamic_sockaddr_array: failed to create buffer");
+    napi_helper_set_element_asserted(env, js_buffer_array, i, js_buffer, "create_buffer_array_from_dynamic_sockaddr_array: failed to set buffer element");
+
+    current_addr = (struct sockaddr*) ((void*) current_addr + addr_length);
+  }
+
+  return js_buffer_array;
+}
+
+static napi_value do_sctp_getladdrs(napi_env env, napi_callback_info info) {
+  int num_addrs;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_status status;
+  struct sockaddr* addrs;
+  napi_value js_result;
+  napi_value js_addrs_array;
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "do_sctp_getladdrs: fd must be provided as number");
+
+  num_addrs = sctp_getladdrs(fd, 0, &addrs);
+  if (num_addrs < 0) {
+    return napi_helper_create_errno_result_asserted(env, errno);
+  }
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "errno", 0);
+
+  js_addrs_array = create_buffer_array_from_dynamic_sockaddr_array(env, addrs, num_addrs);
+  napi_helper_set_named_property_asserted(env, js_result, "sockaddrs", js_addrs_array);
+
+  sctp_freeladdrs(addrs);
+
+  return js_result;
+}
+
 napi_value do_getpeername(napi_env env, napi_callback_info info) {
   int32_t fd;
   napi_value js_args_obj;
@@ -840,6 +903,38 @@ napi_value do_getpeername(napi_env env, napi_callback_info info) {
   getpeername(fd, sockaddr_ptr, &sockaddr_length_as_socklen);
 
   return napi_helper_create_errno_result_asserted(env, errno);
+}
+
+static napi_value do_sctp_getpaddrs(napi_env env, napi_callback_info info) {
+  int num_addrs;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_status status;
+  struct sockaddr* addrs;
+  napi_value js_result;
+  napi_value js_addrs_array;
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "do_sctp_getpaddrs: fd must be provided as number");
+
+  num_addrs = sctp_getpaddrs(fd, 0, &addrs);
+  if (num_addrs < 0) {
+    return napi_helper_create_errno_result_asserted(env, errno);
+  }
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "errno", 0);
+
+  js_addrs_array = create_buffer_array_from_dynamic_sockaddr_array(env, addrs, num_addrs);
+  napi_helper_set_named_property_asserted(env, js_result, "sockaddrs", js_addrs_array);
+
+  sctp_freepaddrs(addrs);
+
+  return js_result;
 }
 
 napi_value do_shutdown(napi_env env, napi_callback_info info) {
@@ -907,7 +1002,9 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "connect", do_connect, NULL, "failed to add connect");
   napi_helper_add_function_field_asserted(env, exports, "get_socket_error", get_socket_error, NULL, "failed to add get_socket_error");
   napi_helper_add_function_field_asserted(env, exports, "getsockname", do_getsockname, NULL, "failed to add getsockname");
+  napi_helper_add_function_field_asserted(env, exports, "sctp_getladdrs", do_sctp_getladdrs, NULL, "failed to add do_sctp_getladdrs");
   napi_helper_add_function_field_asserted(env, exports, "getpeername", do_getpeername, NULL, "failed to add getpeername");
+  napi_helper_add_function_field_asserted(env, exports, "sctp_getpaddrs", do_sctp_getpaddrs, NULL, "failed to add sctp_getpaddrs");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sack_info", setsockopt_sack_info, NULL, "failed to add setsockopt_sack_info");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_initmsg", setsockopt_sctp_initmsg, NULL, "failed to add setsockopt_sctp_initmsg");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_recvrcvinfo", setsockopt_sctp_recvrcvinfo, NULL, "failed to add setsockopt_sctp_recvrcvinfo");

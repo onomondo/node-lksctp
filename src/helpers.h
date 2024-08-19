@@ -461,3 +461,36 @@ static int napi_helper_require_array_length(napi_env env, napi_value array) {
 
   return length;
 }
+
+static void napi_helper_set_element_asserted(napi_env env, napi_value array, uint32_t index, napi_value value, const char* assertion_message) {
+  napi_status status;
+
+  status = napi_set_element(env, array, index, value);
+  if (status != napi_ok) {
+    abort_with_message(assertion_message);
+  }
+}
+
+static napi_value napi_helper_create_array_asserted(napi_env env, const char* message) {
+  napi_status status;
+  napi_value result;
+
+  status = napi_create_array(env, &result);
+  if (status != napi_ok) {
+    abort_with_message(message);
+  }
+
+  return result;
+}
+
+static napi_value napi_helper_create_buffer_copy_asserted(napi_env env, const void* ptr, size_t length, const char* message) {
+  napi_status status;
+  napi_value result;
+
+  status = napi_create_buffer_copy(env, length, ptr, NULL, &result);
+  if (status != napi_ok) {
+    abort_with_message(message);
+  }
+
+  return result;
+}

@@ -113,6 +113,51 @@ describe("api", () => {
         });
       });
     });
+
+    describe("getLocalAddresses() method", () => {
+      it("should return expected interface without error", async () => {
+        await withListeningServerInstance({
+          test: ({ server }) => {
+            const addresses = server.getLocalAddresses();
+
+            addresses.forEach((address) => {
+              assert.strictEqual(address.family, "IPv4");
+              assertIsValidPortNumber(address.port);
+              assertIsIPAddress(address.address);
+            });
+          }
+        });
+      });
+
+      it("should return correct address and port", async () => {
+        const requestedAddress = "127.0.0.1";
+        const requestedPort = 12345;
+
+        await withListeningServerInstance({
+          listenOptions: {
+            host: requestedAddress,
+            port: requestedPort
+          },
+
+          test: ({ server }) => {
+            const addresses = server.getLocalAddresses();
+
+            let requestedAddressFound = false;
+
+            addresses.forEach((address) => {
+              assert.strictEqual(address.family, "IPv4");
+              assert.strictEqual(address.port, requestedPort);
+
+              if (address.address === requestedAddress) {
+                requestedAddressFound = true;
+              }
+            });
+
+            assert(requestedAddressFound);
+          }
+        });
+      });
+    });
   });
 
   describe("socket-duplex", () => {
@@ -166,6 +211,70 @@ describe("api", () => {
             assert.strictEqual(clientAddress.port, requestedClientPort);
 
             assert.strictEqual(serverAddress.address, serverAddressToUse);
+            assert.strictEqual(clientAddress.address, clientAddressToUse);
+          }
+        });
+      });
+    });
+
+    describe("getLocalAddresses() method", () => {
+      it("should return expected interface without error", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            const serverAddresses = server.getLocalAddresses();
+            const clientAddresses = client.getLocalAddresses();
+
+            serverAddresses.forEach((address) => {
+              assert.strictEqual(address.family, "IPv4");
+              assertIsValidPortNumber(address.port);
+              assertIsIPAddress(address.address);
+            });
+
+            clientAddresses.forEach((address) => {
+              assert.strictEqual(address.family, "IPv4");
+              assertIsValidPortNumber(address.port);
+              assertIsIPAddress(address.address);
+            });
+          }
+        });
+      });
+
+      it("should return correct address and port", async () => {
+        const serverAddressToUse = "127.0.0.1";
+        const clientAddressToUse = "127.0.0.1";
+        const requestedServerPort = 12345;
+        const requestedClientPort = 12346;
+
+        await socketpairFactory.withSocketpair({
+          options: {
+            server: {
+              listen: {
+                host: serverAddressToUse,
+                port: requestedServerPort
+              }
+            },
+            client: {
+              localAddress: clientAddressToUse,
+              localPort: requestedClientPort
+            }
+          },
+
+          test: ({ server, client }) => {
+            const serverAddresses = server.getLocalAddresses();
+            const clientAddresses = client.getLocalAddresses();
+
+            assert.strictEqual(serverAddresses.length, 1);
+
+            const serverAddress = serverAddresses[0];
+            assert.strictEqual(serverAddress.family, "IPv4");
+            assert.strictEqual(serverAddress.port, requestedServerPort);
+            assert.strictEqual(serverAddress.address, serverAddressToUse);
+
+            assert.strictEqual(clientAddresses.length, 1);
+
+            const clientAddress = clientAddresses[0];
+            assert.strictEqual(clientAddress.family, "IPv4");
+            assert.strictEqual(clientAddress.port, requestedClientPort);
             assert.strictEqual(clientAddress.address, clientAddressToUse);
           }
         });
@@ -227,6 +336,48 @@ describe("api", () => {
           test: ({ server, client }) => {
             assert.strictEqual(server.localPort, server.address().port);
             assert.strictEqual(client.localPort, client.address().port);
+          }
+        });
+      });
+    });
+
+    describe("getRemoteAddresses() property", () => {
+      it("should have the property", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            const serverAddresses = server.getRemoteAddresses();
+            const clientAddresses = client.getRemoteAddresses();
+
+            serverAddresses.forEach((address) => {
+              assertIsIPAddress(address.address);
+            });
+
+            clientAddresses.forEach((address) => {
+              assertIsIPAddress(address.address);
+            });
+          }
+        });
+      });
+
+      it("should be as expected", async () => {
+        const requestedServerAddress = "127.0.0.1";
+        const requestedServerPort = 12345;
+
+        await socketpairFactory.withSocketpair({
+          options: {
+            server: {
+              listen: {
+                host: requestedServerAddress,
+                port: requestedServerPort
+              }
+            }
+          },
+          test: ({ client }) => {
+            const clientAddresses = client.getRemoteAddresses();
+            assert.strictEqual(clientAddresses.length, 1);
+
+            const clientAddress = clientAddresses[0];
+            assert.strictEqual(clientAddress.address, requestedServerAddress);
           }
         });
       });
