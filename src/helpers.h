@@ -246,9 +246,57 @@ static napi_status napi_helper_require_named_buffer(napi_env env, napi_value obj
   return napi_ok;
 }
 
+static napi_status napi_helper_require_named_array(napi_env env, napi_value obj, const char* name, napi_value* array) {
+  napi_status status;
+  uint32_t length;
+
+  status = napi_get_named_property(env, obj, name, array);
+  if (status != napi_ok) {
+    return status;
+  }
+
+  status = napi_get_array_length(env, *array, &length);
+  if (status != napi_ok) {
+    return status;
+  }
+
+  return napi_ok;
+}
+
+static napi_value napi_helper_require_named_array_asserted(napi_env env, napi_value obj, const char* name, const char* assertion_message) {
+  napi_status status;
+  napi_value js_array;
+
+  status = napi_helper_require_named_array(env, obj, name, &js_array);
+  napi_helper_abort_on_error_with_message(env, status, assertion_message);
+
+  return js_array;
+}
+
+static napi_value napi_helper_get_element_asserted(napi_env env, napi_value array, uint32_t index, const char* assertion_message) {
+  napi_status status;
+  napi_value element;
+
+  status = napi_get_element(env, array, index, &element);
+  if (status != napi_ok) {
+    abort_with_message(assertion_message);
+  }
+
+  return element;
+}
+
+static void napi_helper_require_buffer_asserted(napi_env env, napi_value obj, void* buffer, size_t* buffer_size, const char* assertion_message) {
+  napi_status status;
+
+  status = napi_get_buffer_info(env, obj, buffer, buffer_size);
+  if (status != napi_ok) {
+    abort_with_message(assertion_message);
+  }
+}
+
 static void napi_helper_require_named_buffer_asserted(napi_env env, napi_value obj, const char* name, void* buffer, size_t* buffer_size, const char* assertion_message) {
   napi_status status;
-  
+
   status = napi_helper_require_named_buffer(env, obj, name, buffer, buffer_size);
   napi_helper_abort_on_error_with_message(env, status, assertion_message);
 }
@@ -400,4 +448,16 @@ static napi_ref napi_helper_create_reference_asserted(napi_env env, napi_value v
   }
 
   return ref;
+}
+
+static int napi_helper_require_array_length(napi_env env, napi_value array) {
+  napi_status status;
+  uint32_t length;
+
+  status = napi_get_array_length(env, array, &length);
+  if (status != napi_ok) {
+    abort();
+  }
+
+  return length;
 }
