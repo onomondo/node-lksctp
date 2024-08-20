@@ -10,6 +10,7 @@ server.on("error", (error) => {
 
 server.on("connection", (socket) => {
   console.log("client connected!");
+  server.close();
 
   socket.on("data", (data) => {
     console.log("server received data", data);
