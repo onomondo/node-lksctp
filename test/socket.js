@@ -2,7 +2,7 @@
 
 const assert = require("node:assert");
 const socketpairFactory = require("./lib/socketpair.js");
-const errors = require("../lib/errors.js");
+const { doesErrorRelateToCode } = require("./lib/error-util.js");
 
 // make sure unhandeled rejections are thrown
 process.on("unhandledRejection", (reason) => {
@@ -15,14 +15,6 @@ const generatePseudoRandomBuffer = ({ size }) => {
     result[i] = i % 256;
   }
   return result;
-};
-
-const doesErrorRelateToCode = ({ error, code }) => {
-  const errno = errors.codeToErrno({ code });
-  const expectedMessage = errors.errnoToMessage({ errno });
-
-  const relates = error.code === code && error.message === expectedMessage;
-  return relates;
 };
 
 const transmitAndShutdown = async ({ sender, receiver, packetsToSend }) => {
