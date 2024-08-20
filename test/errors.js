@@ -1,4 +1,5 @@
 const lksctp = require("../lib/index.js");
+const socketpairFactory = require("./lib/socketpair.js");
 const { doesErrorRelateToCode } = require("./lib/error-util.js");
 const assert = require("node:assert");
 
@@ -17,4 +18,25 @@ describe("errors", () => {
 
     assert(doesErrorRelateToCode({ error, code: "ECONNREFUSED" }));
   });
+
+  [
+    "status",
+    "address",
+    "getLocalAddresses",
+    "getRemoteAddresses",
+  ].forEach((methodName) => {
+    it.only(`should give an exception if ${methodName}() is called after destroy`, async () => {
+      await socketpairFactory.withSocketpair({
+        test: ({ client }) => {
+          client.destroy();
+          assert.throws(() => {
+            client[methodName]();
+          }, (ex) => {
+            return ex.message === `${methodName} called after destroy`;
+          });
+        }
+      });
+    });
+  });
+
 });
