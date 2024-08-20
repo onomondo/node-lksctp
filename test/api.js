@@ -160,6 +160,56 @@ describe("api", () => {
     });
   });
 
+  describe("client", () => {
+    it("should support remoteAddresses (single address)", async () => {
+      const requestedServerAddress = "127.0.0.1";
+      const requestedServerPort = 12345;
+
+      await socketpairFactory.withSocketpair({
+        options: {
+          server: {
+            listen: {
+              host: requestedServerAddress,
+              port: requestedServerPort
+            }
+          },
+          client: {
+            host: undefined,
+            remoteAddresses: [requestedServerAddress],
+          }
+        },
+        test: ({ client }) => {
+          assert.strictEqual(client.remoteAddress, requestedServerAddress);
+          assert.strictEqual(client.remotePort, requestedServerPort);
+        }
+      });
+    });
+
+    it("should support remoteAddresses (multiple addresses)", async () => {
+      const requestedServerAddress = "127.0.0.1";
+      const requestedServerPort = 12345;
+
+      await socketpairFactory.withSocketpair({
+        options: {
+          server: {
+            listen: {
+              host: requestedServerAddress,
+              port: requestedServerPort
+            }
+          },
+          client: {
+            host: undefined,
+            remoteAddresses: [requestedServerAddress, "127.0.0.99"],
+          }
+        },
+        test: ({ client }) => {
+          assert.strictEqual(client.remoteAddress, requestedServerAddress);
+          assert.strictEqual(client.remotePort, requestedServerPort);
+        }
+      });
+    });
+  });
+
   describe("socket-duplex", () => {
     describe("address() method", () => {
       it("should return expected interface without error", async () => {
