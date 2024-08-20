@@ -158,6 +158,40 @@ describe("api", () => {
         });
       });
     });
+
+    it("should throw if localAddresses are empty", () => {
+      assert.throws(() => {
+
+        const server = lksctp.createServer();
+        try {
+          server.listen({
+            port: 0,
+            localAddresses: [],
+          });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "localAddresses must have at least one element";
+      });
+    });
+
+    it("should throw if localAddresses contains any non ip-address", () => {
+      assert.throws(() => {
+
+        const server = lksctp.createServer();
+        try {
+          server.listen({
+            port: 0,
+            localAddresses: ["127.0.0.1", "not-an-ip-address"],
+          });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "localAddresses must be an array of valid IP addresses";
+      });
+    });
   });
 
   describe("client", () => {
@@ -206,6 +240,87 @@ describe("api", () => {
           assert.strictEqual(client.remoteAddress, requestedServerAddress);
           assert.strictEqual(client.remotePort, requestedServerPort);
         }
+      });
+    });
+
+    it("should support localAddresses (single address)", async () => {
+      const requestedServerAddress = "127.0.0.1";
+      const requestedClientAddress = "127.0.0.1";
+      const requestedServerPort = 12345;
+
+      await socketpairFactory.withSocketpair({
+        options: {
+          server: {
+            listen: {
+              host: requestedServerAddress,
+              port: requestedServerPort
+            }
+          },
+          client: {
+            localAddresses: [requestedClientAddress],
+          }
+        },
+        test: ({ client }) => {
+          assert.strictEqual(client.localAddress, requestedClientAddress);
+        }
+      });
+    });
+
+    it("should throw if both host and remoteAddresses are specified", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1",
+          remoteAddresses: ["127.0.0.1"],
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "host and remoteAddresses are mutually exclusive";
+      });
+    });
+
+    it("should throw if remoteAddresses are empty", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          remoteAddresses: [],
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "remoteAddresses must have at least one element";
+      });
+    });
+
+    it("should throw if remoteAddresses contains any non ip-address", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          remoteAddresses: ["127.0.0.1", "not-an-ip-address"],
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "remoteAddresses must be an array of valid IP addresses";
+      });
+    });
+
+    it("should throw if localAddresses are empty", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          remoteAddresses: ["127.0.0.1"],
+          port: 12345,
+          localAddresses: [],
+        });
+      }, (ex) => {
+        return ex.message === "localAddresses must have at least one element";
+      });
+    });
+
+    it("should throw if localAddresses contains any non ip-address", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          remoteAddresses: ["127.0.0.1"],
+          port: 12345,
+          localAddresses: ["127.0.0.1", "not-an-ip-address"],
+        });
+      }, (ex) => {
+        return ex.message === "localAddresses must be an array of valid IP addresses";
       });
     });
   });
