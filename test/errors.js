@@ -25,7 +25,7 @@ describe("errors", () => {
     "getLocalAddresses",
     "getRemoteAddresses",
   ].forEach((methodName) => {
-    it.only(`should give an exception if ${methodName}() is called after destroy`, async () => {
+    it(`should give an exception if ${methodName}() is called after destroy`, async () => {
       await socketpairFactory.withSocketpair({
         test: ({ client }) => {
           client.destroy();
