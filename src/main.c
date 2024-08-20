@@ -454,8 +454,6 @@ static void poll_handle_uv_close_cb(uv_handle_t* handle) {
   poll_handle->close_pending = 0;
   poll_handle->closed = 1;
 
-  napi_delete_reference(poll_handle->env, poll_handle->js_poll_callback_fn_ref);
-
   poll_handle_maybe_free(poll_handle);
 }
 
@@ -483,6 +481,8 @@ static napi_value poll_close(napi_env env, napi_callback_info info) {
   }
 
   poll_handle->close_pending = 1;
+  napi_delete_reference(poll_handle->env, poll_handle->js_poll_callback_fn_ref);
+
   uv_close((uv_handle_t*) &poll_handle->uv_poll_handle, poll_handle_uv_close_cb);
 
   return napi_helper_get_undefined(env);
