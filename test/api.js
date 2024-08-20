@@ -446,6 +446,60 @@ describe("api", () => {
       });
     });
 
+    describe("getLocalPrimaryAddress() method", () => {
+      it("should return expected interface without error", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            const serverAddress = server.getLocalPrimaryAddress();
+            const clientAddress = client.getLocalPrimaryAddress();
+
+            assert.strictEqual(serverAddress.family, "IPv4");
+            assertIsValidPortNumber(serverAddress.port);
+            assertIsIPAddress(serverAddress.address);
+
+            assert.strictEqual(clientAddress.family, "IPv4");
+            assertIsValidPortNumber(clientAddress.port);
+            assertIsIPAddress(clientAddress.address);
+          }
+        });
+      });
+
+      it("should return correct address and port", async () => {
+        const serverAddressToUse = "127.0.0.1";
+        const clientAddressToUse = "127.0.0.1";
+        const requestedServerPort = 12345;
+        const requestedClientPort = 12346;
+
+        await socketpairFactory.withSocketpair({
+          options: {
+            server: {
+              listen: {
+                host: serverAddressToUse,
+                port: requestedServerPort
+              }
+            },
+            client: {
+              localAddress: clientAddressToUse,
+              localPort: requestedClientPort
+            }
+          },
+
+          test: ({ server, client }) => {
+            const serverAddress = server.getLocalPrimaryAddress();
+            const clientAddress = client.getLocalPrimaryAddress();
+
+            assert.strictEqual(serverAddress.family, "IPv4");
+            assert.strictEqual(serverAddress.port, requestedServerPort);
+            assert.strictEqual(serverAddress.address, serverAddressToUse);
+
+            assert.strictEqual(clientAddress.family, "IPv4");
+            assert.strictEqual(clientAddress.port, requestedClientPort);
+            assert.strictEqual(clientAddress.address, clientAddressToUse);
+          }
+        });
+      });
+    });
+
     describe("localFamily property", () => {
       it("should have the property", async () => {
         await socketpairFactory.withSocketpair({
@@ -542,6 +596,40 @@ describe("api", () => {
             assert.strictEqual(clientAddresses.length, 1);
 
             const clientAddress = clientAddresses[0];
+            assert.strictEqual(clientAddress.address, requestedServerAddress);
+          }
+        });
+      });
+    });
+
+    describe("getRemotePrimaryAddress() property", () => {
+      it("should have the property", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            const serverAddress = server.getRemotePrimaryAddress();
+            const clientAddress = client.getRemotePrimaryAddress();
+
+            assertIsIPAddress(serverAddress.address);
+            assertIsIPAddress(clientAddress.address);
+          }
+        });
+      });
+
+      it("should be as expected", async () => {
+        const requestedServerAddress = "127.0.0.1";
+        const requestedServerPort = 12345;
+
+        await socketpairFactory.withSocketpair({
+          options: {
+            server: {
+              listen: {
+                host: requestedServerAddress,
+                port: requestedServerPort
+              }
+            }
+          },
+          test: ({ client }) => {
+            const clientAddress = client.getRemotePrimaryAddress();
             assert.strictEqual(clientAddress.address, requestedServerAddress);
           }
         });
