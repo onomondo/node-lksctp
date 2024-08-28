@@ -389,14 +389,14 @@ describe("socket", function () {
         });
       };
 
-      const testBrokenPipeErrorOnRemoteShutdown = async ({ sender, receiver }) => {
+      const testRemoteEndedErrorOnRemoteShutdown = async ({ sender, receiver }) => {
         await new Promise((resolve, reject) => {
           receiver.on("error", (err) => {
             reject(err);
           });
 
           sender.on("error", (err) => {
-            if (doesErrorRelateToCode({ error: err, code: "EPIPE" })) {
+            if (err.message === "remote ended") {
               resolve();
             } else {
               reject(err);
@@ -432,7 +432,7 @@ describe("socket", function () {
       it("should give EPIPE error when packets are queued on remote shutdown (client -> server)", async () => {
         await socketpairFactory.withSocketpair({
           test: async ({ server, client }) => {
-            await testBrokenPipeErrorOnRemoteShutdown({
+            await testRemoteEndedErrorOnRemoteShutdown({
               sender: client,
               receiver: server
             });
@@ -454,7 +454,7 @@ describe("socket", function () {
       it("should give EPIPE error when packets are queued on remote shutdown (server -> client)", async () => {
         await socketpairFactory.withSocketpair({
           test: async ({ server, client }) => {
-            await testBrokenPipeErrorOnRemoteShutdown({
+            await testRemoteEndedErrorOnRemoteShutdown({
               sender: server,
               receiver: client
             });
