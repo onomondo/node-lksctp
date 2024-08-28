@@ -1036,6 +1036,65 @@ napi_value close_fd(napi_env env, napi_callback_info info) {
   return napi_helper_create_errno_result_asserted(env, errno_value);
 }
 
+napi_value parse_sctp_assoc_change_notification(napi_env env, struct sctp_assoc_change* sn_assoc_change, size_t length) {
+  napi_value js_result;
+
+  if (length < sizeof(struct sctp_assoc_change)) {
+    napi_throw_error(env, NULL, "parse_sctp_assoc_change_notification: buffer too small");
+    return napi_helper_get_undefined(env);
+  }
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "sac_type", sn_assoc_change->sac_type);
+  napi_helper_add_int32_field_asserted(env, js_result, "sac_flags", sn_assoc_change->sac_flags);
+  napi_helper_add_int32_field_asserted(env, js_result, "sac_state", sn_assoc_change->sac_state);
+  napi_helper_add_int32_field_asserted(env, js_result, "sac_error", sn_assoc_change->sac_error);
+  napi_helper_add_int32_field_asserted(env, js_result, "sac_outbound_streams", sn_assoc_change->sac_outbound_streams);
+  napi_helper_add_int32_field_asserted(env, js_result, "sac_inbound_streams", sn_assoc_change->sac_inbound_streams);
+
+  return js_result;
+}
+
+napi_value parse_sctp_notification(napi_env env, napi_callback_info info) {
+  napi_value js_args_obj;
+  napi_value js_result;
+  napi_value js_sn;
+  napi_status status;
+  union sctp_notification* notification_addr;
+  size_t notification_length;
+  size_t remaining_length;
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  napi_helper_require_named_buffer_asserted(env, js_args_obj, "notification", (void**) &notification_addr, &notification_length, "parse_sctp_notification: failed to get notification buffer");
+
+  if (notification_length < 2) {
+    napi_throw_error(env, NULL, "parse_sctp_notification: notification buffer too small");
+    return napi_helper_get_undefined(env);
+  }
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "sn_type", notification_addr->sn_header.sn_type);
+
+  switch(notification_addr->sn_header.sn_type) {
+    case SCTP_ASSOC_CHANGE: {
+      remaining_length = notification_length - offsetof(union sctp_notification, sn_assoc_change);
+      js_sn = parse_sctp_assoc_change_notification(env, &notification_addr->sn_assoc_change, remaining_length);
+      napi_helper_add_field_asserted(env, js_result, "sn_assoc_change", js_sn);
+      break;
+    }
+    default: {
+      // only return sn_type
+      break;
+    }
+  }
+
+  return js_result;
+}
+
 NAPI_MODULE_INIT() {
 
   napi_helper_add_function_field_asserted(env, exports, "create_socket", create_socket, NULL, "failed to add create_socket");
@@ -1060,6 +1119,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_event", setsockopt_sctp_event, NULL, "failed to add setsockopt_sctp_event");
   napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
   napi_helper_add_function_field_asserted(env, exports, "shutdown", do_shutdown, NULL, "failed to add shutdown");
+  napi_helper_add_function_field_asserted(env, exports, "parse_sctp_notification", parse_sctp_notification, NULL, "failed to add parse_sctp_notification");
 
   return exports;
 }

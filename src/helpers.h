@@ -390,6 +390,15 @@ static void napi_helper_add_bool_field_asserted(napi_env env, napi_value obj, co
   }
 }
 
+static void napi_helper_add_field_asserted(napi_env env, napi_value obj, const char* name, napi_value value) {
+  napi_status status;
+
+  status = napi_set_named_property(env, obj, name, value);
+  if (status != napi_ok) {
+    abort();
+  }
+}
+
 static napi_value napi_helper_create_object_asserted(napi_env env) {
   napi_value obj;
   napi_status status;
