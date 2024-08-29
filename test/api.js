@@ -727,5 +727,24 @@ describe("api", () => {
       });
     });
 
+    describe("connecting property", () => {
+      it("should have the property", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            assert.strictEqual(typeof server.connecting, "boolean");
+            assert.strictEqual(typeof client.connecting, "boolean");
+          }
+        });
+      });
+
+      it("should be false after connect", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            assert.strictEqual(server.connecting, false);
+            assert.strictEqual(client.connecting, false);
+          }
+        });
+      });
+    });
   });
 });
