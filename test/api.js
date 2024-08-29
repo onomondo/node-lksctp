@@ -746,5 +746,25 @@ describe("api", () => {
         });
       });
     });
+
+    describe("readyState property", () => {
+      it("should have the property", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            assert.strictEqual(typeof server.readyState, "string");
+            assert.strictEqual(typeof client.readyState, "string");
+          }
+        });
+      });
+
+      it("should be 'open' after connect", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            assert.strictEqual(server.readyState, "open");
+            assert.strictEqual(client.readyState, "open");
+          }
+        });
+      });
+    });
   });
 });
