@@ -766,5 +766,25 @@ describe("api", () => {
         });
       });
     });
+
+    describe("pending property", () => {
+      it("should have the property", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            assert.strictEqual(typeof server.pending, "boolean");
+            assert.strictEqual(typeof client.pending, "boolean");
+          }
+        });
+      });
+
+      it("should be false after connect", async () => {
+        await socketpairFactory.withSocketpair({
+          test: ({ server, client }) => {
+            assert.strictEqual(server.pending, false);
+            assert.strictEqual(client.pending, false);
+          }
+        });
+      });
+    });
   });
 });
