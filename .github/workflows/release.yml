@@ -2,7 +2,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -41,6 +41,8 @@ jobs:
           node-version: ${{ hashFiles('.node-version') == '' && '20.x' || '' }}
           node-version-file: ${{ hashFiles('.node-version') != '' && '.node-version' || '' }}
           registry-url: 'https://registry.npmjs.org'
+      - name: Install system dependencies
+        run: sudo apt-get install -y libsctp-dev
       - run: npm ci
       - run: npm publish --provenance --access public
         env:
