@@ -11,10 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  HUSKY_SKIP_HOOKS: 1
-  HUSKY: 0
-
 jobs:
   pr-title:
     uses: onomondo/shared-workflows/.github/workflows/verify-pr-title.yml@master
