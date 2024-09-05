@@ -14,10 +14,6 @@ permissions:
   packages: write
   id-token: write
 
-env:
-  HUSKY_SKIP_HOOKS: 1
-  HUSKY: 0
-
 name: release-please
 jobs:
   release-please:
