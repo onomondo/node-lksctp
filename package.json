@@ -1,19 +1,20 @@
 {
-    "name": "node-lksctp",
-    "type": "commonjs",
-    "version": "0.0.1",
-    "description": "Node.js bindings for Linux SCTP",
-    "main": "lib/index.js",
-    "devDependencies": {
-      "c8": "^10.1.2",
-      "eslint": "^9.8.0",
-      "mocha": "^10.7.0",
-      "node-gyp": "^10.1.0",
-      "raw-socket": "^1.8.1",
-      "sctp": "^1.0.0"
-    },
-    "scripts": {
-      "lint": "eslint .",
-      "test": "c8 --reporter lcov --reporter html --reporter text --src lib/ --all mocha"
-    }
+  "name": "@onomondo/node-lksctp",
+  "type": "commonjs",
+  "version": "0.0.1",
+  "description": "Node.js bindings for Linux SCTP",
+  "main": "lib/index.js",
+  "repository.url": "https://github.com/onomondo/node-lksctp",
+  "devDependencies": {
+    "c8": "^10.1.2",
+    "eslint": "^9.8.0",
+    "mocha": "^10.7.0",
+    "node-gyp": "^10.1.0",
+    "raw-socket": "^1.8.1",
+    "sctp": "^1.0.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "c8 --reporter lcov --reporter html --reporter text --src lib/ --all mocha"
+  }
 }
