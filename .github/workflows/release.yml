@@ -42,7 +42,7 @@ jobs:
           node-version-file: ${{ hashFiles('.node-version') != '' && '.node-version' || '' }}
           registry-url: 'https://registry.npmjs.org'
       - name: Install system dependencies
-        run: sudo apt-get install -y libsctp-dev valgrind
+        run: sudo apt-get install -y libsctp-dev
       - run: npm ci
       - run: npm publish --provenance --access public
         env:
