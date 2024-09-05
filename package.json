@@ -4,7 +4,10 @@
   "version": "0.0.1",
   "description": "Node.js bindings for Linux SCTP",
   "main": "lib/index.js",
-  "repository.url": "https://github.com/onomondo/node-lksctp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/onomondo/node-lksctp"
+  },
   "devDependencies": {
     "c8": "^10.1.2",
     "eslint": "^9.8.0",
