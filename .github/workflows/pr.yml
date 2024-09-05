@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, edited]
     branches:
-      - master
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
