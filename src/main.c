@@ -1072,6 +1072,28 @@ napi_value parse_sctp_authentication_event_notifcation(napi_env env, struct sctp
   return js_result;
 }
 
+napi_value parse_sctp_peer_addr_change_notification(napi_env env, struct sctp_paddr_change* sn_paddr_change, size_t length) {
+  napi_value js_result;
+  napi_value js_spc_aaddr;
+
+  if (length < sizeof(struct sctp_paddr_change)) {
+    napi_throw_error(env, NULL, "parse_sctp_assoc_change_notification: buffer too small");
+    return napi_helper_get_undefined(env);
+  }
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "spc_type", sn_paddr_change->spc_type);
+  napi_helper_add_int32_field_asserted(env, js_result, "spc_flags", sn_paddr_change->spc_flags);
+
+  js_spc_aaddr = napi_helper_create_buffer_copy_asserted(env, &sn_paddr_change->spc_aaddr, sizeof(sn_paddr_change->spc_aaddr), "parse_sctp_peer_addr_change_notification: failed to create buffer");
+  napi_helper_add_field_asserted(env, js_result, "spc_aaddr", js_spc_aaddr);
+
+  napi_helper_add_int32_field_asserted(env, js_result, "spc_state", sn_paddr_change->spc_state);
+  napi_helper_add_int32_field_asserted(env, js_result, "spc_error", sn_paddr_change->spc_error);
+
+  return js_result;
+}
+
 napi_value parse_sctp_notification(napi_env env, napi_callback_info info) {
   napi_value js_args_obj;
   napi_value js_result;
@@ -1107,6 +1129,12 @@ napi_value parse_sctp_notification(napi_env env, napi_callback_info info) {
       remaining_length = notification_length - offsetof(union sctp_notification, sn_authkey_event);
       js_sn = parse_sctp_authentication_event_notifcation(env, &notification_addr->sn_authkey_event, remaining_length);
       napi_helper_add_field_asserted(env, js_result, "sn_authkey_event", js_sn);
+      break;
+    }
+    case SCTP_PEER_ADDR_CHANGE: {
+      remaining_length = notification_length - offsetof(union sctp_notification, sn_paddr_change);
+      js_sn = parse_sctp_peer_addr_change_notification(env, &notification_addr->sn_paddr_change, remaining_length);
+      napi_helper_add_field_asserted(env, js_result, "sn_paddr_change", js_sn);
       break;
     }
     default: {
