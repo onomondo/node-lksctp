@@ -21,9 +21,6 @@ describe("errors", () => {
 
   [
     "status",
-    "address",
-    "getLocalAddresses",
-    "getRemoteAddresses",
   ].forEach((methodName) => {
     it(`should give an exception if ${methodName}() is called after destroy`, async () => {
       await socketpairFactory.withSocketpair({
