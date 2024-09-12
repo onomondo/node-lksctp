@@ -1055,6 +1055,23 @@ napi_value parse_sctp_assoc_change_notification(napi_env env, struct sctp_assoc_
   return js_result;
 }
 
+napi_value parse_sctp_authentication_event_notifcation(napi_env env, struct sctp_authkey_event* sn_authkey_event, size_t length) {
+  napi_value js_result;
+
+  if (length < sizeof(struct sctp_authkey_event)) {
+    napi_throw_error(env, NULL, "parse_sctp_authentication_event_notifcation: buffer too small");
+    return napi_helper_get_undefined(env);
+  }
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "auth_type", sn_authkey_event->auth_type);
+  napi_helper_add_int32_field_asserted(env, js_result, "auth_flags", sn_authkey_event->auth_flags);
+  napi_helper_add_int32_field_asserted(env, js_result, "auth_keynumber", sn_authkey_event->auth_keynumber);
+  napi_helper_add_int32_field_asserted(env, js_result, "auth_indication", sn_authkey_event->auth_indication);
+
+  return js_result;
+}
+
 napi_value parse_sctp_notification(napi_env env, napi_callback_info info) {
   napi_value js_args_obj;
   napi_value js_result;
@@ -1084,6 +1101,12 @@ napi_value parse_sctp_notification(napi_env env, napi_callback_info info) {
       remaining_length = notification_length - offsetof(union sctp_notification, sn_assoc_change);
       js_sn = parse_sctp_assoc_change_notification(env, &notification_addr->sn_assoc_change, remaining_length);
       napi_helper_add_field_asserted(env, js_result, "sn_assoc_change", js_sn);
+      break;
+    }
+    case SCTP_AUTHENTICATION_EVENT: {
+      remaining_length = notification_length - offsetof(union sctp_notification, sn_authkey_event);
+      js_sn = parse_sctp_authentication_event_notifcation(env, &notification_addr->sn_authkey_event, remaining_length);
+      napi_helper_add_field_asserted(env, js_result, "sn_authkey_event", js_sn);
       break;
     }
     default: {
