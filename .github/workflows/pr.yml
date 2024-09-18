@@ -16,7 +16,6 @@ jobs:
     name: Check pull request title
     permissions:
       pull-requests: write
-      statuses: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
