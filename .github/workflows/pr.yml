@@ -12,8 +12,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pr-title:
-    uses: onomondo/shared-workflows/.github/workflows/verify-pr-title.yml@master
-    secrets: inherit
-    with:
-      timeout: 5
+  check-pr-title:
+    name: Check pull request title
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5.5.3
+        id: lint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: always() && (steps.lint.outputs.error_message != null)
+        with:
+          header: pr-title-lint-error
+          message: |
+            Hey there and thank you for opening this pull request! 👋🏼
+
+            We require pull request titles to follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/) and it looks like your proposed title needs to be adjusted.
+
+            Details:
+
+            ```
+            ${{ steps.lint.outputs.error_message }}
+            ```
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: ${{ steps.lint.outputs.error_message == null }}
+        with:
+          header: pr-title-lint-error
+          delete: true
