@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0](https://github.com/onomondo/node-lksctp/compare/v0.0.1...v0.1.0) (2024-09-19)
+
+
+### Features
+
+* initial support for event interpretion ([#8](https://github.com/onomondo/node-lksctp/issues/8)) ([326ca8f](https://github.com/onomondo/node-lksctp/commit/326ca8f78abb88cfc34d4745a1454eac5b24f0ed))
+
 ## [0.0.1](https://github.com/onomondo/node-lksctp/compare/v0.0.1...v0.0.1) (2024-09-09)
 
 
