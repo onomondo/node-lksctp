@@ -38,6 +38,34 @@ describe("errors", () => {
     assert(doesErrorRelateToCode({ error, code: "ECONNREFUSED" }));
   });
 
+  it("should give EADDRINUSE when trying to connect with occupied local port", async () => {
+
+    const port = 1111;
+
+    await socketpairFactory.withSocketpair({
+      options: {
+        client: {
+          localPort: port,
+        }
+      },
+      test: async () => {
+        const client2 = lksctp.connect({
+          port: 2222,
+          host: "127.0.0.1",
+          localPort: port,
+        });
+
+        const error = await waitForSocketError({ socket: client2 });
+
+        if (error === undefined) {
+          throw Error("expected error");
+        }
+
+        assert(doesErrorRelateToCode({ error, code: "EADDRINUSE" }));
+      }
+    });
+  });
+
   [
     "status",
   ].forEach((methodName) => {
