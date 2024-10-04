@@ -2,6 +2,8 @@ const lksctp = require("../lib/index.js");
 const socketpairFactory = require("./lib/socketpair.js");
 const { doesErrorRelateToCode } = require("./lib/error-util.js");
 const assert = require("node:assert");
+const constants = require("../lib/constants.js");
+const nodeUtil = require("node:util");
 
 const waitForSocketError = ({ socket, timeoutMs = 500 }) => {
   return new Promise((resolve, reject) => {
@@ -80,6 +82,37 @@ describe("errors", () => {
           });
         }
       });
+    });
+  });
+
+  describe("errno constants", () => {
+
+    const codesLibuvIsMissing = [
+      "EINPROGRESS"
+    ];
+
+    Object.keys(constants.errno).forEach((code) => {
+
+      if (code === "NO_ERROR") {
+        return;
+      }
+
+      if (codesLibuvIsMissing.includes(code)) {
+        it(`should have no mapping for ${code} in libuv`, () => {
+          const errno = constants.errno[code];
+          const libuvErrno = -errno;
+          const libuvCode = nodeUtil.getSystemErrorName(libuvErrno);
+          assert(libuvCode.startsWith("Unknown system error"));
+        });
+
+      } else {
+        it(`should have same value as libuv for ${code}`, () => {
+          const errno = constants.errno[code];
+          const libuvErrno = -errno;
+          const libuvCode = nodeUtil.getSystemErrorName(libuvErrno);
+          assert.strictEqual(code, libuvCode);
+        });
+      }
     });
   });
 
