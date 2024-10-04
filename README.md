@@ -17,7 +17,7 @@ options:
 * highWaterMark [number] (see Node's [Net])
 * ~~keepAlive~~
 * ~~keepAliveInitialDelay~~
-* ~~noDelay~~
+* noDelay [boolean] optional flag to disable Nagle's algorithm
 * ~~pauseOnConnect~~
 * MIS [number] maximum number of input streams
 * OS [number] number of output streams
@@ -60,6 +60,7 @@ options:
 * localPort [number] optional local port to bind to
 * localAddress [string] optional local IP address to bind to
 * localAddresses [string[]] optional list of local address to bind to (localAddress option is not allowed if this is passed)
+* noDelay [boolean] optional flag to disable Nagle's algorithm
 * MIS [number] maximum number of input streams
 * OS [number] number of output streams
 * sctp [Object] optional
@@ -83,6 +84,13 @@ Like Node's [Net]
 
 Get a status object based on [SCTP_STATUS](https://datatracker.ietf.org/doc/html/rfc6458#section-8.2.1)
 
+### `duplex`.end([data[, encoding]][, callback])
+Like Node's [Net]
+This will cause a normal shutdown
+
+### `duplex`.destroy([error])
+Like Node's [Net]
+This will cause an ABORT via [SO_LINGER](https://datatracker.ietf.org/doc/html/rfc6458#section-8.1.4) if the stream has not been closed via end() yet.
 
 ### Field `duplex`.localFamily [string]
 Local family, "IPv4"
@@ -111,6 +119,10 @@ List of current remote addresses (may change during runtime, including primary a
 ### Field `duplex`.peerInfoByAddress [{ [address]: info }]
 * info - peer address information based on [RFC](https://datatracker.ietf.org/doc/html/rfc6458#section-8.2.2), or undefined if unavailable
 
+### Event `duplex` - "data"
+* data [Buffer]
+    * data.ppid [number] received payload protocol identifier
+    * data.sid [number] received stream ID
 
 ### Event `duplex` - "address-change"
 Raised when an address change is detected (examine `duplex`.local* and `duplex`.remote*)
