@@ -4,7 +4,12 @@ const doesErrorRelateToCode = ({ error, code }) => {
   const errno = errors.codeToErrno({ code });
   const expectedMessage = errors.errnoToMessage({ errno });
 
-  const relates = error.code === code && error.message === expectedMessage;
+  const codeCorrect = error.code === code;
+  const errnoCorrect = error.errno === errno;
+  const messageCorrect = error.message === expectedMessage;
+
+  const relates = codeCorrect && errnoCorrect && messageCorrect;
+
   return relates;
 };
 
