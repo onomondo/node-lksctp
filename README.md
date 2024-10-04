@@ -1,5 +1,31 @@
 # node-lksctp
 
+## System requirements
+
+Requires libsctp of [LKSCTP](https://github.com/sctp/lksctp-tools), also known as libsctp-dev debian package.
+
+It has been tested to work with v1.0.19 and v1.0.20, but most likely also supports older versions and newer versions.
+
+The library must set HAVE_SCTP_SENDV, which will be the case when `struct sctp_prinfo` is around during compile time. Some debian versions ship libsctp-dev without this macro.
+
+You can always compile libsctp yourself like so:
+
+```
+FROM debian:bullseye
+
+RUN apt-get update && apt-get install -y build-essential autoconf automake libtool git
+
+WORKDIR /root
+
+RUN git clone https://github.com/sctp/lksctp-tools.git
+WORKDIR /root/lksctp-tools
+RUN git checkout v1.0.19
+RUN ./bootstrap
+RUN ./configure
+RUN make -j $(nproc)
+RUN make install
+```
+
 ## Documentation
 
 Refer to Node.js [Net] API.
