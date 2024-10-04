@@ -79,7 +79,7 @@ napi_value getsockopt_sctp_status(napi_env env, napi_callback_info info) {
     return napi_helper_get_undefined(env);
   }
 
-  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "setsockopt_sack_info: fd must be provided as number");
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "getsockopt_sctp_status: fd must be provided as number");
 
   rc = getsockopt(fd, IPPROTO_SCTP, SCTP_STATUS, &sctpi, &sctpi_len);
   if (rc < 0) {
@@ -108,6 +108,55 @@ napi_value getsockopt_sctp_status(napi_env env, napi_callback_info info) {
   napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_peer_tag", sctpi.sctpi_peer_tag);
   napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_peer_capable", sctpi.sctpi_peer_capable);
   napi_helper_add_uint64_field_asserted(env, js_info, "sctpi_peer_sack", sctpi.sctpi_peer_sack);
+
+  js_result = napi_helper_create_object_asserted(env);
+  napi_helper_add_int32_field_asserted(env, js_result, "errno", 0);
+  napi_helper_set_named_property_asserted(env, js_result, "info", js_info);
+
+  return js_result;
+}
+
+napi_value getsockopt_peer_addr_info(napi_env env, napi_callback_info info) {
+  int rc;
+  int32_t fd;
+  napi_value js_args_obj;
+  napi_value js_result;
+  napi_value js_info;
+  napi_status status;
+  struct sockaddr* sockaddr_ptr;
+  size_t sockaddr_length;
+  struct sctp_paddrinfo spinfo = {0};
+  socklen_t spinfo_len = sizeof(spinfo);
+
+  status = napi_helper_require_args_or_throw(env, info, 1, &js_args_obj);
+  if (status != napi_ok) {
+    return napi_helper_get_undefined(env);
+  }
+
+  fd = napi_helper_require_named_int32_asserted(env, js_args_obj, "fd", "getsockopt_peer_addr_info: fd must be provided as number");
+  napi_helper_require_named_buffer_asserted(env, js_args_obj, "sockaddr", (void**) &sockaddr_ptr, &sockaddr_length, "getsockopt_peer_addr_info: sockaddr must be provided as buffer");
+
+  if (sockaddr_length > sizeof(spinfo.spinfo_address)) {
+    abort_with_message("getsockopt_peer_addr_info: sockaddr buffer is too large");
+  }
+
+  memcpy(&spinfo.spinfo_address, sockaddr_ptr, sockaddr_length);
+
+  rc = getsockopt(fd, IPPROTO_SCTP, SCTP_GET_PEER_ADDR_INFO, &spinfo, &spinfo_len);
+  if (rc < 0) {
+    return napi_helper_create_errno_result_asserted(env, errno);
+  }
+
+  if (spinfo_len < sizeof(spinfo)) {
+    abort_with_message("getsockopt_peer_addr_info: unexpected length of sctp_paddrinfo");
+  }
+
+  js_info = napi_helper_create_object_asserted(env);
+  napi_helper_add_uint64_field_asserted(env, js_info, "spinfo_state", spinfo.spinfo_state);
+  napi_helper_add_uint64_field_asserted(env, js_info, "spinfo_cwnd", spinfo.spinfo_cwnd);
+  napi_helper_add_uint64_field_asserted(env, js_info, "spinfo_srtt", spinfo.spinfo_srtt);
+  napi_helper_add_uint64_field_asserted(env, js_info, "spinfo_rto", spinfo.spinfo_rto);
+  napi_helper_add_uint64_field_asserted(env, js_info, "spinfo_mtu", spinfo.spinfo_mtu);
 
   js_result = napi_helper_create_object_asserted(env);
   napi_helper_add_int32_field_asserted(env, js_result, "errno", 0);
@@ -1169,6 +1218,7 @@ NAPI_MODULE_INIT() {
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_nodelay", setsockopt_nodelay, NULL, "failed to add setsockopt_nodelay");
   napi_helper_add_function_field_asserted(env, exports, "setsockopt_sctp_event", setsockopt_sctp_event, NULL, "failed to add setsockopt_sctp_event");
   napi_helper_add_function_field_asserted(env, exports, "getsockopt_sctp_status", getsockopt_sctp_status, NULL, "failed to add getsockopt_sctp_status");
+  napi_helper_add_function_field_asserted(env, exports, "getsockopt_peer_addr_info", getsockopt_peer_addr_info, NULL, "failed to add getsockopt_peer_addr_info");
   napi_helper_add_function_field_asserted(env, exports, "shutdown", do_shutdown, NULL, "failed to add shutdown");
   napi_helper_add_function_field_asserted(env, exports, "parse_sctp_notification", parse_sctp_notification, NULL, "failed to add parse_sctp_notification");
 
