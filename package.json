@@ -1,7 +1,7 @@
 {
   "name": "lksctp",
   "type": "commonjs",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Node.js bindings for Linux SCTP",
   "license": "MIT",
   "main": "lib/index.js",

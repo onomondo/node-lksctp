@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/onomondo/node-lksctp/compare/v0.2.0...v0.2.1) (2024-11-20)
+
+
+### Bug Fixes
+
+* improve handling of ETIMEDOUT ([#24](https://github.com/onomondo/node-lksctp/issues/24)) ([56b6cf1](https://github.com/onomondo/node-lksctp/commit/56b6cf11d8cf537a735c914739b950b86352e4d5))
+
 ## [0.2.0](https://github.com/onomondo/node-lksctp/compare/v0.1.0...v0.2.0) (2024-10-07)
 
 
