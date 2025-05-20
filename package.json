@@ -12,8 +12,8 @@
   "devDependencies": {
     "c8": "^10.1.2",
     "eslint": "^9.8.0",
-    "mocha": "^10.7.0",
-    "node-gyp": "^10.1.0",
+    "mocha": "^11.4.0",
+    "node-gyp": "^11.2.0",
     "raw-socket": "^1.8.1",
     "sctp": "^1.0.0"
   },
