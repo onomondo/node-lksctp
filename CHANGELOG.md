@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/onomondo/node-lksctp/compare/v0.2.1...v0.3.0) (2025-05-20)
+
+
+### Features
+
+* bump deps ([#28](https://github.com/onomondo/node-lksctp/issues/28)) ([aee8834](https://github.com/onomondo/node-lksctp/commit/aee8834b53a94af0569dd05ea6f110ab2d0e8ba1))
+
 ## [0.2.1](https://github.com/onomondo/node-lksctp/compare/v0.2.0...v0.2.1) (2024-11-20)
 
 
