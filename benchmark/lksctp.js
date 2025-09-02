@@ -1,7 +1,7 @@
 const lksctp = require("../lib/index.js");
 const benchmark = require("./lib/index.js");
 
-const port = 12345;
+const port = 3868;
 
 if (process.env.SERVER) {
   const server = lksctp.createServer({
@@ -14,12 +14,9 @@ if (process.env.SERVER) {
     console.error("server error", error);
   });
 
-  server.listen(
-    { host: process.env.SERVER, port, backlog: 2000 },
-    () => {
-      console.log(`SCPT server listening on ${process.env.SERVER}:${port}`);
-    },
-  );
+  server.listen({ host: process.env.SERVER, port, backlog: 2000 }, () => {
+    console.log(`SCPT server listening on ${process.env.SERVER}:${port}`);
+  });
 
   console.log(server.address());
 
@@ -39,7 +36,7 @@ if (process.env.SERVER) {
 } else {
   benchmark.runClient({
     connect: () => {
-      console.log("connecting to", process.env.SERVER_HOST);
+      console.log("connecting to", process.env.SERVER_HOST, port);
       return lksctp.connect({
         host: process.env.SERVER_HOST,
         port,
