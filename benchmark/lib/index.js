@@ -144,6 +144,8 @@ function runClient({ connect }) {
     totalReceived += 1;
     maybeSendNext();
   });
+
+  setTimeout(maybeSendNext, 0);
 }
 
 module.exports = {
