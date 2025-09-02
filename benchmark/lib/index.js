@@ -8,7 +8,7 @@ const run = ({ server, connect }) => {
   const maxSendQueue = 100;
   const batchSize = 40;
   const messageSize = 270;
-  const numberOfConnections = 1;
+  const numberOfConnections = process.env.SERVER ? 0 : 1;
 
   const messageBuffer = Buffer.alloc(messageSize);
   for (let i = 0; i < messageBuffer.length; i += 1) {

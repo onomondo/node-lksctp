@@ -21,7 +21,7 @@ if (process.env.SERVER) {
     server,
     connect: () => {
       return lksctp.connect({
-        host: "127.0.0.1",
+        host: process.env.SERVER_HOST,
         port,
         sctp: {
           sack_freq: 1,
@@ -33,8 +33,8 @@ if (process.env.SERVER) {
   benchmark.runClient({
     connect: () => {
       return lksctp.connect({
-        host: "127.0.0.1",
-        port,
+        host: process.env.SERVER_HOST,
+        port: 12345,
         sctp: {
           sack_freq: 1,
         },
