@@ -123,7 +123,7 @@ const run = ({ server, connect }) => {
   }
 };
 
-function runClient (connect) {
+function runClient({ connect }) {
   const client = connect();
 
   client.on("connect", () => {
