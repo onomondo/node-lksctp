@@ -12,6 +12,7 @@ let lastReceived = 0;
 let lastSent = 0;
 let lastMonotonicTime = performance.now();
 
+let currentClientIndex = 0;
 const maxSendQueue = 100;
 const batchSize = 40;
 const messageSize = 270;
@@ -81,8 +82,6 @@ const run = ({ server, connect }) => {
     lastSent = totalSent;
     lastMonotonicTime = now;
   }, 1000);
-
-  let currentClientIndex = 0;
 
   server.on("error", (error) => {
     console.error("server error", error);
