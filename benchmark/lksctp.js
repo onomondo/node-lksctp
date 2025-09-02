@@ -15,7 +15,7 @@ if (process.env.SERVER) {
   });
 
   server.listen(
-    { localAdressses: [process.env.SERVER], port, backlog: 2000 },
+    { host: process.env.SERVER, port, backlog: 2000 },
     () => {
       console.log(`SCPT server listening on ${process.env.SERVER}:${port}`);
     },
