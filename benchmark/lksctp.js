@@ -16,7 +16,7 @@ if (process.env.SERVER) {
   });
 
   server.listen({ port, backlog: 2000 }, () => {
-    console.log(`SCPT server listening on :${port}`);
+    console.log(`SCPT server listening on ${process.env.SERVER}:${port}`);
   });
   benchmark.run({
     server,
