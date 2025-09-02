@@ -8,7 +8,7 @@ if (process.env.SERVER) {
     sack: {
       freq: 1,
     },
-    host: process.env.SERVER
+    host: process.env.SERVER,
   });
 
   server.on("error", (error) => {
@@ -18,6 +18,8 @@ if (process.env.SERVER) {
   server.listen({ port, backlog: 2000 }, () => {
     console.log(`SCPT server listening on ${process.env.SERVER}:${port}`);
   });
+
+  console.log(server)
   benchmark.run({
     server,
     connect: () => {
@@ -36,7 +38,7 @@ if (process.env.SERVER) {
       console.log("connecting to", process.env.SERVER_HOST);
       return lksctp.connect({
         host: process.env.SERVER_HOST,
-        port: 12345,
+        port,
         sctp: {
           sack_freq: 1,
         },
