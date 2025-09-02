@@ -1,12 +1,12 @@
 const lksctp = require("../lib/index.js");
 const benchmark = require("./lib/index.js");
-
+const sack_freq = 2;
 const port = 3868;
 
 if (process.env.SERVER) {
   const server = lksctp.createServer({
     sack: {
-      freq: 1,
+      freq: sack_freq,
     },
   });
 
@@ -28,7 +28,7 @@ if (process.env.SERVER) {
         host: process.env.SERVER_HOST,
         port,
         sctp: {
-          sack_freq: 1,
+          sack_freq,
         },
       });
     },
@@ -41,7 +41,7 @@ if (process.env.SERVER) {
         host: process.env.SERVER_HOST,
         port,
         sctp: {
-          sack_freq: 1,
+          sack_freq,
         },
       });
     },
