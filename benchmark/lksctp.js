@@ -8,18 +8,20 @@ if (process.env.SERVER) {
     sack: {
       freq: 1,
     },
-    host: process.env.SERVER,
   });
 
   server.on("error", (error) => {
     console.error("server error", error);
   });
 
-  server.listen({ port, backlog: 2000 }, () => {
-    console.log(`SCPT server listening on ${process.env.SERVER}:${port}`);
-  });
+  server.listen(
+    { localAdressses: [process.env.SERVER], port, backlog: 2000 },
+    () => {
+      console.log(`SCPT server listening on ${process.env.SERVER}:${port}`);
+    },
+  );
 
-  console.log(server)
+  console.log(server);
   benchmark.run({
     server,
     connect: () => {
