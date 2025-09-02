@@ -12,6 +12,11 @@ let lastReceived = 0;
 let lastSent = 0;
 let lastMonotonicTime = performance.now();
 
+const maxSendQueue = 100;
+const batchSize = 40;
+const messageSize = 270;
+const numberOfConnections = process.env.SERVER ? 0 : 1;
+console.log("connections", numberOfConnections);
 const maybeSendNext = () => {
   if (connectedClients.length === 0) {
     return;
@@ -47,12 +52,6 @@ const maybeSendNext = () => {
 };
 
 const run = ({ server, connect }) => {
-  const maxSendQueue = 100;
-  const batchSize = 40;
-  const messageSize = 270;
-  const numberOfConnections = process.env.SERVER ? 0 : 1;
-  console.log("connections", numberOfConnections);
-
   const messageBuffer = Buffer.alloc(messageSize);
   for (let i = 0; i < messageBuffer.length; i += 1) {
     messageBuffer[i] = Math.floor(Math.random() * 256);
