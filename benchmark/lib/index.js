@@ -11,6 +11,41 @@ let totalReceived = 0;
 let lastReceived = 0;
 let lastSent = 0;
 let lastMonotonicTime = performance.now();
+
+const maybeSendNext = () => {
+  if (connectedClients.length === 0) {
+    return;
+  }
+
+  const pending = totalSent - totalReceived;
+
+  if (pending >= maxSendQueue - batchSize) {
+    // console.log("backpressure");
+    return;
+  }
+
+  for (let i = 0; i < batchSize; i += 1) {
+    const client = connectedClients[currentClientIndex];
+    currentClientIndex = (currentClientIndex + 1) % connectedClients.length;
+
+    client.write(messageBuffer, (err) => {
+      if (err) {
+        throw err;
+      }
+
+      maybeSendNext();
+    });
+
+    totalSent += 1;
+  }
+
+  // console.log({ totalSent });
+
+  setTimeout(() => {
+    maybeSendNext();
+  }, 0);
+};
+
 const run = ({ server, connect }) => {
   const maxSendQueue = 100;
   const batchSize = 40;
@@ -49,40 +84,6 @@ const run = ({ server, connect }) => {
   }, 1000);
 
   let currentClientIndex = 0;
-
-  const maybeSendNext = () => {
-    if (connectedClients.length === 0) {
-      return;
-    }
-
-    const pending = totalSent - totalReceived;
-
-    if (pending >= maxSendQueue - batchSize) {
-      // console.log("backpressure");
-      return;
-    }
-
-    for (let i = 0; i < batchSize; i += 1) {
-      const client = connectedClients[currentClientIndex];
-      currentClientIndex = (currentClientIndex + 1) % connectedClients.length;
-
-      client.write(messageBuffer, (err) => {
-        if (err) {
-          throw err;
-        }
-
-        maybeSendNext();
-      });
-
-      totalSent += 1;
-    }
-
-    // console.log({ totalSent });
-
-    setTimeout(() => {
-      maybeSendNext();
-    }, 0);
-  };
 
   server.on("error", (error) => {
     console.error("server error", error);
