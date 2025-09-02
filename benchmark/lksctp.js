@@ -8,6 +8,7 @@ if (process.env.SERVER) {
     sack: {
       freq: 1,
     },
+    host: process.env.SERVER
   });
 
   server.on("error", (error) => {
