@@ -17,9 +17,11 @@ const maxSendQueue = 100;
 const batchSize = 40;
 const messageSize = 270;
 const numberOfConnections = process.env.SERVER ? 0 : 1;
+const messageBuffer = Buffer.alloc(messageSize);
 console.log("connections", numberOfConnections);
 const maybeSendNext = () => {
   if (connectedClients.length === 0) {
+    console.log("no clients connected");
     return;
   }
 
@@ -52,7 +54,6 @@ const maybeSendNext = () => {
   }, 0);
 };
 
-const messageBuffer = Buffer.alloc(messageSize);
 const run = ({ server, connect }) => {
   for (let i = 0; i < messageBuffer.length; i += 1) {
     messageBuffer[i] = Math.floor(Math.random() * 256);
@@ -138,7 +139,7 @@ function runClient({ connect }) {
     console.error("client error", error);
   });
 
-  client.on("data", () => {});
+  client.on("data", () => maybeSendNext());
 }
 
 module.exports = {
