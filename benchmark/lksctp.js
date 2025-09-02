@@ -1,6 +1,6 @@
 const lksctp = require("../lib/index.js");
 const benchmark = require("./lib/index.js");
-const sack_freq = 5;
+const sack_freq = 2;
 const port = 3868;
 
 if (process.env.SERVER) {
