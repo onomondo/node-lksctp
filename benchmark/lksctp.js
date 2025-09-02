@@ -32,16 +32,14 @@ if (process.env.SERVER) {
 } else {
   benchmark.runClient({
     connect: () => {
-      return () => {
-        console.log("connecting to", process.env.SERVER_HOST);
-        return lksctp.connect({
-          host: process.env.SERVER_HOST,
-          port: 12345,
-          sctp: {
-            sack_freq: 1,
-          },
-        });
-      };
+      console.log("connecting to", process.env.SERVER_HOST);
+      return lksctp.connect({
+        host: process.env.SERVER_HOST,
+        port: 12345,
+        sctp: {
+          sack_freq: 1,
+        },
+      });
     },
   });
 }
