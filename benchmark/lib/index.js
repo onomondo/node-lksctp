@@ -91,6 +91,8 @@ const run = ({ server, connect }) => {
 
   server.on("connection", (socket) => {
     clientOfServer = socket;
+
+    connectedClients.push(socket);
     maybeSendNext();
 
     console.log("client connected!");
