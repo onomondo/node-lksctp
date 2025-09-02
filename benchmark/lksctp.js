@@ -8,6 +8,7 @@ if (process.env.SERVER) {
     sack: {
       freq: sack_freq,
     },
+    noDelay: true,
   });
 
   server.on("error", (error) => {
@@ -43,6 +44,7 @@ if (process.env.SERVER) {
         sctp: {
           sack_freq,
         },
+        noDelay: true,
       });
     },
   });
