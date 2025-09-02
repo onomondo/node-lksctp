@@ -52,8 +52,8 @@ const maybeSendNext = () => {
   }, 0);
 };
 
+const messageBuffer = Buffer.alloc(messageSize);
 const run = ({ server, connect }) => {
-  const messageBuffer = Buffer.alloc(messageSize);
   for (let i = 0; i < messageBuffer.length; i += 1) {
     messageBuffer[i] = Math.floor(Math.random() * 256);
   }
