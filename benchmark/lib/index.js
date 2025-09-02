@@ -140,7 +140,10 @@ function runClient({ connect }) {
     console.error("client error", error);
   });
 
-  client.on("data", () => maybeSendNext());
+  client.on("data", () => {
+    totalReceived += 1;
+    maybeSendNext();
+  });
 }
 
 module.exports = {
