@@ -17,28 +17,30 @@ server.listen({ port, backlog: 2000 }, () => {
   console.log(`SCPT server listening on :${port}`);
 });
 
-benchmark.run({
-  server,
-  connect: () => {
-    return lksctp.connect({
-      host: "127.0.0.1",
-      port,
-      sctp: {
-        sack_freq: 1,
-      },
-    });
-  },
-});
-
-benchmark.runClient({
-  server,
-  connect: () => {
-    return lksctp.connect({
-      host: "127.0.0.1",
-      port,
-      sctp: {
-        sack_freq: 1,
-      },
-    });
-  },
-});
+if (process.env.SERVER) {
+  benchmark.run({
+    server,
+    connect: () => {
+      return lksctp.connect({
+        host: "127.0.0.1",
+        port,
+        sctp: {
+          sack_freq: 1,
+        },
+      });
+    },
+  });
+} else {
+  benchmark.runClient({
+    server,
+    connect: () => {
+      return lksctp.connect({
+        host: "127.0.0.1",
+        port,
+        sctp: {
+          sack_freq: 1,
+        },
+      });
+    },
+  });
+}
