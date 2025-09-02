@@ -21,7 +21,7 @@ if (process.env.SERVER) {
     },
   );
 
-  console.log(server.getLocalAddresses());
+  console.log(server.address());
 
   console.log(server);
   benchmark.run({
