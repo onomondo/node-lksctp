@@ -4,6 +4,13 @@ const perf_hooks = require("node:perf_hooks");
 
 const performance = perf_hooks.performance;
 
+let connectedClients = [];
+let totalSent = 0;
+let totalReceived = 0;
+
+let lastReceived = 0;
+let lastSent = 0;
+let lastMonotonicTime = performance.now();
 const run = ({ server, connect }) => {
   const maxSendQueue = 100;
   const batchSize = 40;
@@ -17,13 +24,6 @@ const run = ({ server, connect }) => {
   }
 
   // eslint-disable-next-line prefer-const
-  let connectedClients = [];
-  let totalSent = 0;
-  let totalReceived = 0;
-
-  let lastReceived = 0;
-  let lastSent = 0;
-  let lastMonotonicTime = performance.now();
   setInterval(() => {
     const now = performance.now();
 
