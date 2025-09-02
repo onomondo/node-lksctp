@@ -28,7 +28,7 @@ const maybeSendNext = () => {
   const pending = totalSent - totalReceived;
 
   if (pending >= maxSendQueue - batchSize) {
-    console.log("backpressure");
+    // console.log("backpressure");
     return;
   }
 
@@ -37,7 +37,7 @@ const maybeSendNext = () => {
     currentClientIndex = (currentClientIndex + 1) % connectedClients.length;
 
     client.write(messageBuffer, (err) => {
-      console.log("sending data");
+      // console.log("sending data");
       if (err) {
         throw err;
       }
