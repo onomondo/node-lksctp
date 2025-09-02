@@ -5,8 +5,8 @@ const port = 12345;
 
 const server = lksctp.createServer({
   sack: {
-    freq: 1
-  }
+    freq: 1,
+  },
 });
 
 server.on("error", (error) => {
@@ -24,8 +24,21 @@ benchmark.run({
       host: "127.0.0.1",
       port,
       sctp: {
-        sack_freq: 1
-      }
+        sack_freq: 1,
+      },
     });
-  }
+  },
+});
+
+benchmark.runClient({
+  server,
+  connect: () => {
+    return lksctp.connect({
+      host: "127.0.0.1",
+      port,
+      sctp: {
+        sack_freq: 1,
+      },
+    });
+  },
 });

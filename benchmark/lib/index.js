@@ -5,7 +5,6 @@ const perf_hooks = require("node:perf_hooks");
 const performance = perf_hooks.performance;
 
 const run = ({ server, connect }) => {
-
   const maxSendQueue = 100;
   const batchSize = 40;
   const messageSize = 270;
@@ -31,12 +30,17 @@ const run = ({ server, connect }) => {
     const sentSinceLast = totalSent - lastSent;
     const timeSinceLast = now - lastMonotonicTime;
 
-    const messagesReceivedPerSecond = receivedSinceLast / timeSinceLast * 1000;
-    const messagesSentPerSecond = sentSinceLast / timeSinceLast * 1000;
+    const messagesReceivedPerSecond =
+      (receivedSinceLast / timeSinceLast) * 1000;
+    const messagesSentPerSecond = (sentSinceLast / timeSinceLast) * 1000;
 
     const pendingOrLost = totalSent - totalReceived;
 
-    console.log({ messagesReceivedPerSecond, messagesSentPerSecond, pendingOrLost });
+    console.log({
+      messagesReceivedPerSecond,
+      messagesSentPerSecond,
+      pendingOrLost,
+    });
 
     lastReceived = totalReceived;
     lastSent = totalSent;
@@ -58,7 +62,6 @@ const run = ({ server, connect }) => {
     }
 
     for (let i = 0; i < batchSize; i += 1) {
-
       const client = connectedClients[currentClientIndex];
       currentClientIndex = (currentClientIndex + 1) % connectedClients.length;
 
@@ -95,15 +98,12 @@ const run = ({ server, connect }) => {
       maybeSendNext();
     });
 
-    socket.on("end", () => {
-
-    });
+    socket.on("end", () => {});
 
     socket.on("error", (error) => {
       console.error("socket error", error);
     });
   });
-
 
   for (let i = 0; i < numberOfConnections; i += 1) {
     const client = connect();
@@ -119,12 +119,28 @@ const run = ({ server, connect }) => {
       console.error("client error", error);
     });
 
-    client.on("data", () => {
-
-    });
+    client.on("data", () => {});
   }
 };
 
+function runClient (connect) {
+  const client = connect();
+
+  client.on("connect", () => {
+    console.log("client connected");
+
+    connectedClients.push(client);
+    maybeSendNext();
+  });
+
+  client.on("error", (error) => {
+    console.error("client error", error);
+  });
+
+  client.on("data", () => {});
+}
+
 module.exports = {
-  run
+  run,
+  runClient,
 };
