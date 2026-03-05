@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/onomondo/node-lksctp/compare/v0.3.0...v0.3.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* Crash on accepted sockets when peer disconnects before address gathering ([#35](https://github.com/onomondo/node-lksctp/issues/35)) ([c3ae4a5](https://github.com/onomondo/node-lksctp/commit/c3ae4a5cc39699c78511f45f1e89cf514629f081))
+
 ## [0.3.0](https://github.com/onomondo/node-lksctp/compare/v0.2.1...v0.3.0) (2025-05-20)
 
 
