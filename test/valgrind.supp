@@ -1,5 +1,17 @@
+# Node starts runtime threads at startup (the V8 Inspector agent via
+# node::inspector::Agent::Start -> pthread_create, plus libuv threadpool workers).
+# glibc allocates each thread's TLS/DTV with calloc, and valgrind reports the block
+# as "possibly lost" because only interior pointers reach it. It is a Node runtime
+# artifact, not an lksctp allocation (lksctp is single-threaded and never calls
+# pthread_create), and it shows up for every Node process.
+#
+# The frames between pthread_create and node::Start drift across Node versions (an
+# added StartDebugSignalHandler frame, a delegating CreateEnvironment overload, a
+# StartInternal frame, ...), which is why this file previously needed one pinned
+# block per build. Anchor instead on the new-thread TLS prefix and node::Start, and
+# let "..." absorb the version-specific middle so this stays correct across upgrades.
 {
-   Node
+   Node startup-thread TLS (version-robust)
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
@@ -8,32 +20,7 @@
    fun:_dl_allocate_tls
    fun:allocate_stack
    fun:pthread_create@@GLIBC_2.34
-   fun:_ZN4node9inspector5Agent5StartERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERKNS_12DebugOptionsESt10shared_ptrINS_15ExclusiveAccessINS_8HostPortENS_9MutexBaseINS_16LibuvMutexTraitsEEEEEEb
-   fun:_ZN4node11Environment19InitializeInspectorESt10unique_ptrINS_9inspector21ParentInspectorHandleESt14default_deleteIS3_EE
-   fun:_ZN4node17CreateEnvironmentEPNS_11IsolateDataEN2v85LocalINS2_7ContextEEERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaISC_EESG_NS_16EnvironmentFlags5FlagsENS_8ThreadIdESt10unique_ptrINS_21InspectorParentHandleESt14default_deleteISL_EE
-   fun:_ZN4node16NodeMainInstance21CreateMainEnvironmentEPNS_8ExitCodeE
-   fun:_ZN4node16NodeMainInstance3RunEv
-   fun:_ZN4node5StartEiPPc
-   fun:(below main)
-}
-
-{
-   Node 22.7.0
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:calloc
-   fun:calloc
-   fun:allocate_dtv
-   fun:_dl_allocate_tls
-   fun:allocate_stack
-   fun:pthread_create@@GLIBC_2.34
-   fun:_ZN4node9inspector12_GLOBAL__N_1L23StartDebugSignalHandlerEv.isra.0
-   fun:_ZN4node9inspector5Agent5StartERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERKNS_12DebugOptionsESt10shared_ptrINS_15ExclusiveAccessINS_8HostPortENS_9MutexBaseINS_16LibuvMutexTraitsEEEEEEb
-   fun:_ZN4node11Environment19InitializeInspectorESt10unique_ptrINS_9inspector21ParentInspectorHandleESt14default_deleteIS3_EE
-   fun:_ZN4node17CreateEnvironmentEPNS_11IsolateDataEN2v85LocalINS2_7ContextEEERKSt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaISC_EESG_NS_16EnvironmentFlags5FlagsENS_8ThreadIdESt10unique_ptrINS_21InspectorParentHandleESt14default_deleteISL_EE
-   fun:_ZN4node16NodeMainInstance21CreateMainEnvironmentEPNS_8ExitCodeE
-   fun:_ZN4node16NodeMainInstance3RunEv
-   fun:StartInternal
+   ...
    fun:_ZN4node5StartEiPPc
    fun:(below main)
 }
