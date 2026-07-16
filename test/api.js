@@ -2,6 +2,7 @@ const lksctp = require("../lib/index.js");
 const socketpairFactory = require("./lib/socketpair.js");
 const assert = require("node:assert");
 const net = require("node:net");
+const events = require("node:events");
 
 const assertIsValidPortNumber = (value) => {
   assert.strictEqual(typeof value, "number");
@@ -15,6 +16,7 @@ const assertIsIPAddress = (value) => {
 };
 
 describe("api", () => {
+  // eslint-disable-next-line max-statements
   describe("server", () => {
     it("should support createServer with no arguments", () => {
       const server = lksctp.createServer();
@@ -56,6 +58,91 @@ describe("api", () => {
 
       });
       server.close();
+    });
+
+    it("should support listen with a positional port (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0);
+      server.close();
+    });
+
+    it("should support listen with a positional port and host (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, "127.0.0.1");
+      server.close();
+    });
+
+    it("should support listen with a positional port and a callback argument (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, () => {
+
+      });
+      server.close();
+    });
+
+    it("should emit 'listening' asynchronously so a listener attached after listen() still fires", async () => {
+      const server = lksctp.createServer();
+      try {
+        server.listen(0);
+        // once() attaches only after listen() has returned; a synchronous emit
+        // would be missed. Parity with net.Server / node-sctp.
+        await events.once(server, "listening");
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should support a positional port and backlog (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, 128);
+      server.close();
+    });
+
+    it("should support the full positional form: port, host, backlog and callback", () => {
+      const server = lksctp.createServer();
+      server.listen(0, "127.0.0.1", 128, () => {
+
+      });
+      server.close();
+    });
+
+    it("should throw when listen() is called with no arguments", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen();
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "at least one argument is required";
+      });
+    });
+
+    it("should throw when an options object is passed with extra arguments", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 0 }, {});
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "invalid number of arguments";
+      });
+    });
+
+    it("should throw on a positional argument that is neither host nor backlog", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen(0, {});
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "invalid listen() argument";
+      });
     });
 
     const withListeningServerInstance = async ({ socketOptions, listenOptions, test }) => {
