@@ -2,6 +2,26 @@
 
 ## System requirements
 
+This package is Linux-only and declares `"os": ["linux"]`, so npm refuses to install it on
+macOS and Windows instead of trying (and failing) to build the native binding there.
+
+Depend on it through `optionalDependencies` rather than `dependencies` — npm then skips it
+on non-Linux platforms and the install still succeeds — and load it lazily behind a
+`process.platform === "linux"` check or a `try`/`catch`, falling back to a userspace SCTP
+implementation:
+
+```js
+let sctp;
+if (process.platform === "linux") {
+  try {
+    sctp = require("lksctp");
+  } catch {
+    // native binding unavailable, fall through
+  }
+}
+sctp ??= require("some-userspace-sctp");
+```
+
 Requires libsctp of [LKSCTP](https://github.com/sctp/lksctp-tools), also known as libsctp-dev debian package.
 
 It has been tested to work with v1.0.19 and v1.0.20, but most likely also supports older versions and newer versions.
@@ -36,7 +56,7 @@ Several existing differences explained below.
 The Socket constructor is not available. Use `lksctp.createServer()` or `lksctp.connect()`
 
 ### lksctp.createServer([options][, connectionListener]) -> `server`
-* options [Object]
+* options [Object] — may be omitted, `undefined` or `null`; all three give the defaults
 
 options:
 * ~~allowHalfOpen~~
@@ -53,9 +73,21 @@ options:
         * freq [number] `sack_freq` of socket option
 
 ### `server`.listen(options[, callback]) -> `duplex`
+### `server`.listen(port[, host][, backlog][, callback]) -> `duplex`
 * options [Object]
 
-Only the options variant of [Net] is supported.
+Both the options variant and the positional variant of [Net] are supported; the positional
+arguments are a shorthand for the matching options below.
+
+An optional argument may be absent, `undefined` or `null`, and all three mean the same thing:
+`listen(port, undefined)` and `listen(port, null)` bind exactly like `listen(port)`, and
+`{ host: null }` binds every local address. This is what [Net] does with an argument it was
+not given, and it is what a caller forwarding an optional host — `listen(port, opts.host)` —
+depends on. An argument that is neither a host string nor a backlog number is still an error.
+
+One difference from [Net] remains: `host` must be an IP address, since there is no DNS
+resolution. `port` must be present, but `0` asks the kernel for an ephemeral port, exactly as
+in [Net]; only an *omitted* port (`listen()`) is refused.
 
 options:
 * backlog [number] number of connections kernel will accept for us
@@ -144,6 +176,10 @@ List of current remote addresses (may change during runtime, including primary a
 
 ### Field `duplex`.peerInfoByAddress [{ [address]: info }]
 * info - peer address information based on [RFC](https://datatracker.ietf.org/doc/html/rfc6458#section-8.2.2), or undefined if unavailable
+
+### Event `server` - "listening"
+Raised once the socket is bound. Emitted asynchronously (on the next microtask) like [Net],
+so a listener attached *after* the synchronous `listen()` call still sees it.
 
 ### Event `duplex` - "data"
 * data [Buffer]
