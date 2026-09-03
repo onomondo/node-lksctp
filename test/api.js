@@ -145,6 +145,94 @@ describe("api", () => {
       });
     });
 
+    // A caller that forwards an optional host — `listen(port, opts.host)` with
+    // nothing configured — hands over undefined, and net binds it as if the
+    // argument were absent. node-diameter and node-stp are both written that
+    // way, so these are the forms the ecosystem actually calls.
+    it("should treat an undefined host as an absent one (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, undefined);
+      server.close();
+    });
+
+    it("should treat a null host as an absent one (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, null);
+      server.close();
+    });
+
+    it("should accept an undefined host followed by a callback", async () => {
+      const server = lksctp.createServer();
+      try {
+        await new Promise((resolve, reject) => {
+          server.listen(0, undefined, () => {
+            resolve();
+          });
+
+          server.on("error", reject);
+        });
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should accept undefined in every optional positional slot", () => {
+      const server = lksctp.createServer();
+      server.listen(0, undefined, undefined);
+      server.close();
+    });
+
+    it("should treat host: undefined in the options object as an absent host", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0, host: undefined });
+      server.close();
+    });
+
+    it("should treat host: null in the options object as an absent host", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0, host: null });
+      server.close();
+    });
+
+    it("should not read a null host as a conflict with localAddresses", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0, host: null, localAddresses: ["127.0.0.1"] });
+      server.close();
+    });
+
+    // The socket options survive as far as listen(), which reads them to build
+    // the socket — an options argument that was dropped for a null shows up
+    // there and nowhere earlier, so each of these has to bind to prove anything.
+    it("should support createServer with undefined options and a connection listener", () => {
+      const server = lksctp.createServer(undefined, () => {
+
+      });
+      server.listen(0);
+      server.close();
+    });
+
+    it("should support createServer with null options and a connection listener", () => {
+      const server = lksctp.createServer(null, () => {
+
+      });
+      server.listen(0);
+      server.close();
+    });
+
+    it("should support createServer with undefined options alone", () => {
+      const server = lksctp.createServer(undefined);
+      server.listen(0);
+      server.close();
+    });
+
+    it("should throw when createServer is given options that are not an object", () => {
+      assert.throws(() => {
+        lksctp.createServer("127.0.0.1");
+      }, (ex) => {
+        return ex.message === "options must be an object";
+      });
+    });
+
     const withListeningServerInstance = async ({ socketOptions, listenOptions, test }) => {
       const server = lksctp.createServer(socketOptions);
       try {
