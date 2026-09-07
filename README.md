@@ -116,6 +116,12 @@ Get locally bound addresses
 
 Only the options variant of [Net] is supported.
 
+`host` and `localAddress` must be IP addresses, since there is no DNS resolution, and IPv4
+ones: an IPv6 address is refused rather than connected. `port` follows the same rule as in
+`listen()` — a number or a numeric string, integral, 0..65535. As in `listen()`, an optional
+option may be absent, `undefined` or `null`, and all three mean the same thing; `localPort`
+and `localAddress` are optional, `host`/`remoteAddresses` and `port` are not.
+
 options:
 * host [string] remote host IP adress to connect to
 * remoteAddresses [string[]] remote host IP addresses to connect to (host option is not allowed if this is passed)

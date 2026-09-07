@@ -502,6 +502,7 @@ describe("api", () => {
     });
   });
 
+  // eslint-disable-next-line max-statements
   describe("client", () => {
     it("should support remoteAddresses (single address)", async () => {
       const requestedServerAddress = "127.0.0.1";
@@ -629,6 +630,134 @@ describe("api", () => {
         });
       }, (ex) => {
         return ex.message === "localAddresses must be an array of valid IP addresses";
+      });
+    });
+
+    // connect() went by its own rules until these: null was an address rather
+    // than an absent option, `host` and `localAddress` were never checked at
+    // all (they failed as "invalid address" from inside the transport), and the
+    // port check was unreachable — a present but unusable port passed straight
+    // through to sockaddr formatting.
+    it("should treat a null host as an absent one", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: null,
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "host or remoteAddresses is required";
+      });
+    });
+
+    it("should throw if host is not an ip-address", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "not-an-ip-address",
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "host must be a valid IP address";
+      });
+    });
+
+    it("should throw on an IPv6 host", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "::1",
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    it("should throw on an IPv6 address among remoteAddresses", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          remoteAddresses: ["127.0.0.1", "::1"],
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    it("should throw if localAddress is not an ip-address", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1",
+          port: 12345,
+          localAddress: "not-an-ip-address"
+        });
+      }, (ex) => {
+        return ex.message === "localAddress must be a valid IP address";
+      });
+    });
+
+    it("should throw if a missing port", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1"
+        });
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on a port above the maximum", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1",
+          port: 99999
+        });
+      }, (ex) => {
+        return ex.message === "port must be between 0 and 65535";
+      });
+    });
+
+    it("should throw on a localPort that is not a number", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1",
+          port: 12345,
+          localPort: "not-a-port"
+        });
+      }, (ex) => {
+        return ex.message === "localPort must be a number";
+      });
+    });
+
+    it("should accept a numeric string as the port, as net does", async () => {
+      const requestedServerPort = 12345;
+
+      await socketpairFactory.withSocketpair({
+        options: {
+          server: {
+            listen: {
+              host: "127.0.0.1",
+              port: requestedServerPort
+            }
+          },
+          client: {
+            port: `${requestedServerPort}`
+          }
+        },
+        test: ({ client }) => {
+          assert.strictEqual(client.remotePort, requestedServerPort);
+        }
+      });
+    });
+
+    it("should treat a null localPort as an absent one", async () => {
+      await socketpairFactory.withSocketpair({
+        options: {
+          client: {
+            localPort: null
+          }
+        },
+        test: ({ client }) => {
+          assertIsValidPortNumber(client.localPort);
+        }
       });
     });
   });
