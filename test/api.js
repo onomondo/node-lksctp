@@ -225,6 +225,80 @@ describe("api", () => {
       server.close();
     });
 
+    // port follows net's validatePort: a number or a numeric string, integral,
+    // 0..65535. isNaN() used to admit `null` as an ephemeral port and to pass
+    // 99999 down to Buffer#writeUInt16BE, whose range error names no option.
+    it("should accept a numeric string as the port (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: "0" });
+      server.close();
+    });
+
+    it("should throw on a null port rather than bind an ephemeral one", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: null });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on a port above the maximum", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 99999 });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port must be between 0 and 65535";
+      });
+    });
+
+    it("should throw on a negative port", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: -1 });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on a fractional port", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 1.5 });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on an empty string port", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: "" });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
     it("should throw when createServer is given options that are not an object", () => {
       assert.throws(() => {
         lksctp.createServer("127.0.0.1");
