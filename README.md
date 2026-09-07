@@ -71,12 +71,18 @@ options:
     * delay [number] `sack_delay` of socket option
     * freq [number] `sack_freq` of socket option
 
-### `server`.listen(options[, callback]) -> `duplex`
-### `server`.listen(port[, host][, backlog][, callback]) -> `duplex`
+### `server`.listen(options[, callback]) -> `server`
+### `server`.listen(port[, host][, backlog][, callback]) -> `server`
 * options [Object]
+* callback [Function] optional, registered as a one-shot "listening" listener
 
 Both the options variant and the positional variant of [Net] are supported; the positional
 arguments are a shorthand for the matching options below.
+
+`callback` is what it is in [Net]: a one-shot listener for the "listening" event. It runs
+asynchronously, after `listen()` has returned, and it is never handed an error — a bind that
+fails emits "error" and the callback simply does not run. (It used to be called
+synchronously, with the error as its first argument.)
 
 An optional argument may be absent, `undefined` or `null`, and all three mean the same thing:
 `listen(port, undefined)` and `listen(port, null)` bind exactly like `listen(port)`, and
@@ -106,9 +112,24 @@ options:
 * ~~signal~~
 * ~~writableAll~~
 
+### `server`.address() -> { family: "IPv4", address: string, port: number } | null
+
+Locally bound primary address, or `null` while the server is not listening, as in [Net].
+
 ### `server`.getLocalAddresses() -> { family: "IPv4", address: string, port: number } []
 
-Get locally bound addresses
+Get locally bound addresses. Unlike `address()` this one throws while the server is not
+bound — it is not a [Net] method and has no null to answer with.
+
+### `server`.close([callback]) -> `server`
+* callback [Function] optional, registered as a one-shot "close" listener
+
+Like [Net]: it does not throw when the server was not listening, and a `callback` given for
+such a call is handed an `Error("server is not running")` instead. "close" is emitted either
+way.
+
+### Field `server`.listening [boolean]
+True between a successful `listen()` and `close()`, as in [Net].
 
 
 ### lksctp.connect(options[, connectListener]) -> `duplex`
@@ -189,7 +210,11 @@ List of current remote addresses (may change during runtime, including primary a
 
 ### Event `server` - "listening"
 Raised once the socket is bound. Emitted asynchronously (on the next microtask) like [Net],
-so a listener attached *after* the synchronous `listen()` call still sees it.
+so a listener attached *after* the synchronous `listen()` call still sees it — and, as in
+[Net], dropped if the server is closed before that microtask runs.
+
+### Event `server` - "close"
+Raised once `close()` has released the socket.
 
 ### Event `duplex` - "data"
 * data [Buffer]

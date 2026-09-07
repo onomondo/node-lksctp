@@ -201,6 +201,119 @@ describe("api", () => {
       server.close();
     });
 
+    // The rest of net's Server surface: a `listening` flag, an address() that
+    // answers null rather than throwing, a close() that takes a callback and
+    // emits 'close', a listen() callback that is a 'listening' listener like
+    // net's — asynchronous, and never handed an error — and methods that answer
+    // with the server so calls chain.
+    it("should report listening around listen() and close()", () => {
+      const server = lksctp.createServer();
+
+      assert.strictEqual(server.listening, false);
+
+      server.listen({ port: 0 });
+      assert.strictEqual(server.listening, true);
+
+      server.close();
+      assert.strictEqual(server.listening, false);
+    });
+
+    it("should answer null from address() while not listening", () => {
+      const server = lksctp.createServer();
+
+      assert.strictEqual(server.address(), null);
+
+      server.listen({ port: 0 });
+      assert.notStrictEqual(server.address(), null);
+
+      server.close();
+      assert.strictEqual(server.address(), null);
+    });
+
+    it("should answer with the server from listen() and close()", () => {
+      const server = lksctp.createServer();
+
+      assert.strictEqual(server.listen({ port: 0 }), server);
+      assert.strictEqual(server.close(), server);
+    });
+
+    it("should emit 'close' and run the close() callback", async () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 });
+
+      const closeEvent = events.once(server, "close");
+
+      const closeError = await new Promise((resolve) => {
+        server.close(resolve);
+      });
+
+      await closeEvent;
+      assert.strictEqual(closeError, undefined);
+    });
+
+    it("should hand the close() callback an error when nothing was listening", async () => {
+      const server = lksctp.createServer();
+
+      const closeError = await new Promise((resolve) => {
+        server.close(resolve);
+      });
+
+      assert.strictEqual(closeError.message, "server is not running");
+    });
+
+    it("should not throw on a second close()", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 });
+      server.close();
+      server.close();
+    });
+
+    it("should run the listen() callback with no arguments", async () => {
+      const server = lksctp.createServer();
+
+      try {
+        const args = await new Promise((resolve, reject) => {
+          server.listen(0, (...callbackArgs) => {
+            resolve(callbackArgs);
+          });
+
+          server.on("error", reject);
+        });
+
+        assert.deepStrictEqual(args, []);
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should not run the listen() callback when the bind fails", async () => {
+      const requestedPort = 12345;
+
+      const holder = lksctp.createServer();
+      holder.listen({ port: requestedPort });
+
+      const server = lksctp.createServer();
+      let callbackRan = false;
+
+      try {
+        const error = await new Promise((resolve, reject) => {
+          server.on("error", resolve);
+
+          server.listen({ port: requestedPort }, () => {
+            callbackRan = true;
+            reject(Error("the listen() callback ran on a failed bind"));
+          });
+        });
+
+        assert.strictEqual(error.code, "EADDRINUSE");
+        assert.strictEqual(callbackRan, false);
+        assert.strictEqual(server.listening, false);
+      } finally {
+        server.close();
+        holder.close();
+      }
+    });
+
     // The socket options survive as far as listen(), which reads them to build
     // the socket — an options argument that was dropped for a null shows up
     // there and nowhere earlier, so each of these has to bind to prove anything.
