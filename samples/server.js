@@ -25,11 +25,8 @@ server.on("connection", (socket) => {
   });
 });
 
-server.listen({ port }, (err) => {
-  if (err) {
-    console.error("server listen error", err);
-    return;
-  }
-
+// the callback is a 'listening' listener, as in net: a bind that fails reaches
+// the 'error' handler above instead
+server.listen({ port }, () => {
   console.log(`SCPT server listening on :${port}`);
 });
