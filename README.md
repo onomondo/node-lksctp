@@ -67,10 +67,9 @@ options:
 * ~~pauseOnConnect~~
 * MIS [number] maximum number of input streams
 * OS [number] number of output streams
-* sctp [Object] optional
-    * sack [Object] optional, socket option SCTP_DELAYED_SACK as defined in [RFC](https://datatracker.ietf.org/doc/html/rfc6458#section-8.1.19), will be set for every connection
-        * delay [number] `sack_delay` of socket option
-        * freq [number] `sack_freq` of socket option
+* sack [Object] optional, socket option SCTP_DELAYED_SACK as defined in [RFC](https://datatracker.ietf.org/doc/html/rfc6458#section-8.1.19), set on the listening socket and inherited by every accepted association
+    * delay [number] `sack_delay` of socket option
+    * freq [number] `sack_freq` of socket option
 
 ### `server`.listen(options[, callback]) -> `duplex`
 ### `server`.listen(port[, host][, backlog][, callback]) -> `duplex`
@@ -85,9 +84,15 @@ An optional argument may be absent, `undefined` or `null`, and all three mean th
 not given, and it is what a caller forwarding an optional host — `listen(port, opts.host)` —
 depends on. An argument that is neither a host string nor a backlog number is still an error.
 
-One difference from [Net] remains: `host` must be an IP address, since there is no DNS
-resolution. `port` must be present, but `0` asks the kernel for an ephemeral port, exactly as
-in [Net]; only an *omitted* port (`listen()`) is refused.
+With no `host` and no `localAddresses`, the socket binds `0.0.0.0` — every local IPv4
+address — as [Net] does with no host. Unlike [Net] there is no dual-stack default, because
+there is no IPv6 at all: the socket is `AF_INET`, and an IPv6 `host` or `localAddresses`
+entry is refused rather than bound.
+
+`host` must be an IP address, since there is no DNS resolution. `port` must be present, and
+follows [Net]'s rule: a number or a numeric string, integral, between 0 and 65535, where `0`
+asks the kernel for an ephemeral port. An omitted port (`listen()`), a `null` port and a port
+out of range are all refused — `null` is *not* read as absence here, unlike `host`.
 
 options:
 * backlog [number] number of connections kernel will accept for us
@@ -96,7 +101,7 @@ options:
 * localAddresses [string[]] optional list of local address to bind to (host option is not allowed if this is passed)
 * ~~ipv6Only~~
 * ~~path~~
-* port [number] optional local port to bind to
+* port [number] local port to bind to, required (`0` for an ephemeral one)
 * ~~readableAll~~
 * ~~signal~~
 * ~~writableAll~~
@@ -121,10 +126,9 @@ options:
 * noDelay [boolean] optional flag to disable Nagle's algorithm
 * MIS [number] maximum number of input streams
 * OS [number] number of output streams
-* sctp [Object] optional
-    * sack [Object] optional, socket option SCTP_DELAYED_SACK as defined in [RFC](https://datatracker.ietf.org/doc/html/rfc6458#section-8.1.19)
-        * delay [number] `sack_delay` of socket option
-        * freq [number] `sack_freq` of socket option
+* sack [Object] optional, socket option SCTP_DELAYED_SACK as defined in [RFC](https://datatracker.ietf.org/doc/html/rfc6458#section-8.1.19)
+    * delay [number] `sack_delay` of socket option
+    * freq [number] `sack_freq` of socket option
 
 
 ### `duplex`.write(data[, encoding][, callback])
