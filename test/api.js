@@ -3,6 +3,7 @@ const socketpairFactory = require("./lib/socketpair.js");
 const assert = require("node:assert");
 const net = require("node:net");
 const events = require("node:events");
+const nodeFs = require("node:fs");
 
 const assertIsValidPortNumber = (value) => {
   assert.strictEqual(typeof value, "number");
@@ -297,6 +298,64 @@ describe("api", () => {
       }, (ex) => {
         return ex.message === "port is required and must be a number";
       });
+    });
+
+    // isIP() accepts IPv6, the AF_INET socket underneath does not: without a
+    // check at option level the address failed inside sctp_bindx() instead, out
+    // of a listen() that had already created the socket.
+    it("should throw on an IPv6 host", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 0, host: "::1" });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    it("should throw on an IPv6 address among localAddresses", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 0, localAddresses: ["127.0.0.1", "::1"] });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    // A refused option must cost nothing: the socket is created inside listen(),
+    // so a check that runs too late leaves an open fd behind with no way to
+    // reach it. Synchronous throughout, so nothing else can open an fd in the
+    // middle of the count.
+    it("should not leak a file descriptor when listen() refuses an option", () => {
+      const openFileDescriptorCount = () => {
+        return nodeFs.readdirSync("/proc/self/fd").length;
+      };
+
+      const refusedOptions = [
+        { port: null },
+        { port: 99999 },
+        { port: 0, host: "::1" },
+        { port: 0, localAddresses: ["::1"] }
+      ];
+
+      const before = openFileDescriptorCount();
+
+      refusedOptions.forEach((options) => {
+        const server = lksctp.createServer();
+        assert.throws(() => {
+          server.listen(options);
+        });
+        server.close();
+      });
+
+      assert.strictEqual(openFileDescriptorCount(), before);
     });
 
     it("should throw when createServer is given options that are not an object", () => {
