@@ -183,6 +183,49 @@ describe("api", () => {
       server.close();
     });
 
+    // The same holds after an options object: listen(options, opts.callback)
+    // with no callback configured. It used to be refused as an extra argument
+    // while listen(port, undefined) was accepted.
+    it("should treat an undefined callback after the options object as an absent one", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 }, undefined);
+      server.close();
+    });
+
+    it("should treat a null callback after the options object as an absent one", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 }, null);
+      server.close();
+    });
+
+    it("should accept an undefined slot between the options object and a callback", async () => {
+      const server = lksctp.createServer();
+      try {
+        await new Promise((resolve, reject) => {
+          server.listen({ port: 0 }, undefined, () => {
+            resolve();
+          });
+
+          server.on("error", reject);
+        });
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should still refuse a null port rather than skip over it to the host", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen(null, "127.0.0.1");
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
     it("should treat host: undefined in the options object as an absent host", () => {
       const server = lksctp.createServer();
       server.listen({ port: 0, host: undefined });

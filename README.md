@@ -85,10 +85,12 @@ fails emits "error" and the callback simply does not run. (It used to be called
 synchronously, with the error as its first argument.)
 
 An optional argument may be absent, `undefined` or `null`, and all three mean the same thing:
-`listen(port, undefined)` and `listen(port, null)` bind exactly like `listen(port)`, and
-`{ host: null }` binds every local address. This is what [Net] does with an argument it was
-not given, and it is what a caller forwarding an optional host — `listen(port, opts.host)` —
-depends on. An argument that is neither a host string nor a backlog number is still an error.
+`listen(port, undefined)` and `listen(port, null)` bind exactly like `listen(port)`,
+`listen(options, undefined)` like `listen(options)`, and `{ host: null }` binds every local
+address. This is what [Net] does with an argument it was not given, and it is what a caller
+forwarding an optional value — `listen(port, opts.host)`, `listen(options, opts.callback)` —
+depends on. An argument that is neither a host string nor a backlog number is still an error,
+and so is anything but a callback after the options object.
 
 With no `host` and no `localAddresses`, the socket binds `0.0.0.0` — every local IPv4
 address — as [Net] does with no host. Unlike [Net] there is no dual-stack default, because
