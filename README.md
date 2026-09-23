@@ -218,6 +218,13 @@ Raised once the socket is bound. Emitted asynchronously (on the next microtask) 
 so a listener attached *after* the synchronous `listen()` call still sees it — and, as in
 [Net], dropped if the server is closed before that microtask runs.
 
+### Event `server` - "error"
+Raised when the socket cannot be created or bound, or an `accept()` fails; the socket is
+closed first. Emitted asynchronously (on the next microtask) like [Net], so a failed bind
+does not throw out of `listen()`, and a handler attached after the call — including
+`events.once(server, "listening")`, which rejects — still receives it. Arguments that are
+wrong in themselves (a bad port, an IPv6 host) still throw from `listen()`, as in [Net].
+
 ### Event `server` - "close"
 Raised once `close()` has released the socket.
 

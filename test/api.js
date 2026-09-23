@@ -392,6 +392,55 @@ describe("api", () => {
       }
     });
 
+    // A failed bind is reported the way net reports it: on the next tick, so a
+    // handler attached after listen() returns still gets it. Emitted inside
+    // listen(), it reached only handlers attached before the call, and
+    // `server.listen(port, host); await events.once(server, "listening")`
+    // — node-mobile-machinery's shape — waited forever on a port in use.
+    const withPortInUse = async (test) => {
+      const holder = lksctp.createServer();
+      holder.listen({ port: 0 });
+      await events.once(holder, "listening");
+
+      try {
+        await test({ port: holder.address().port });
+      } finally {
+        holder.close();
+      }
+    };
+
+    it("should let events.once() reject when the bind fails", async () => {
+      await withPortInUse(async ({ port }) => {
+        const server = lksctp.createServer();
+
+        try {
+          server.listen(port);
+
+          await assert.rejects(events.once(server, "listening"), (error) => {
+            return error.code === "EADDRINUSE";
+          });
+        } finally {
+          server.close();
+        }
+      });
+    });
+
+    it("should hand a bind error to a handler attached after listen()", async () => {
+      await withPortInUse(async ({ port }) => {
+        const server = lksctp.createServer();
+
+        try {
+          server.listen({ port });
+
+          const [error] = await events.once(server, "error");
+          assert.strictEqual(error.code, "EADDRINUSE");
+          assert.strictEqual(server.listening, false);
+        } finally {
+          server.close();
+        }
+      });
+    });
+
     // The socket options survive as far as listen(), which reads them to build
     // the socket — an options argument that was dropped for a null shows up
     // there and nowhere earlier, so each of these has to bind to prove anything.
