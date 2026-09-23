@@ -280,6 +280,41 @@ describe("api", () => {
       assert.strictEqual(server.close(), server);
     });
 
+    // A net.Server is an EventEmitter, and callers treat it as one: events.once()
+    // removes its listeners when 'error' wins, which a server exposing only
+    // on() and once() answered with "emitter.removeListener is not a function".
+    it("should be an EventEmitter, as net.Server is", () => {
+      const server = lksctp.createServer();
+
+      assert.ok(server instanceof events.EventEmitter);
+    });
+
+    it("should stop calling a listener removed with off()", () => {
+      const server = lksctp.createServer();
+      let calls = 0;
+      const listener = () => {
+        calls += 1;
+      };
+
+      server.on("connection", listener);
+      server.emit("connection");
+      server.off("connection", listener);
+      server.emit("connection");
+
+      assert.strictEqual(calls, 1);
+      assert.strictEqual(server.listenerCount("connection"), 0);
+    });
+
+    it("should let events.once() reject on 'error' while it waits for 'listening'", async () => {
+      const server = lksctp.createServer();
+      const failure = Error("bind failed");
+
+      const listening = events.once(server, "listening");
+      server.emit("error", failure);
+
+      await assert.rejects(listening, failure);
+    });
+
     it("should emit 'close' and run the close() callback", async () => {
       const server = lksctp.createServer();
       server.listen({ port: 0 });

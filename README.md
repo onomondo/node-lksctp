@@ -58,6 +58,9 @@ The Socket constructor is not available. Use `lksctp.createServer()` or `lksctp.
 ### lksctp.createServer([options][, connectionListener]) -> `server`
 * options [Object] — may be omitted, `undefined` or `null`; all three give the defaults
 
+The `server` is an [EventEmitter](https://nodejs.org/api/events.html), as [Net]'s is, so
+`off()`, `emit()`, `listenerCount()` and `events.once(server, "listening")` all work on it.
+
 options:
 * ~~allowHalfOpen~~
 * highWaterMark [number] (see Node's [Net])
