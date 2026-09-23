@@ -14,7 +14,7 @@ server.on("error", (error) => {
 });
 
 server.listen({ port, backlog: 2000 }, () => {
-  console.log(`SCPT server listening on :${port}`);
+  console.log(`SCTP server listening on :${port}`);
 });
 
 benchmark.run({

@@ -26,7 +26,7 @@ server.on("connection", (socket) => {
 });
 
 server.listen({ port }, () => {
-  console.log(`SCPT server listening on :${port}`);
+  console.log(`SCTP server listening on :${port}`);
 });
 
 const client = lksctp.connect({ host: "127.0.0.1", port });
