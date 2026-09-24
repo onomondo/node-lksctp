@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/onomondo/node-lksctp/compare/v0.3.1...v0.4.0) (2026-09-24)
+
+
+### Features
+
+* Node's Net parity and linux gate ([#41](https://github.com/onomondo/node-lksctp/issues/41)) ([8b172db](https://github.com/onomondo/node-lksctp/commit/8b172dba0617f832217eeeda8f4cf78465442106))
+
 ## [0.3.1](https://github.com/onomondo/node-lksctp/compare/v0.3.0...v0.3.1) (2026-03-05)
 
 
