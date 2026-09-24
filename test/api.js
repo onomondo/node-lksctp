@@ -2,6 +2,8 @@ const lksctp = require("../lib/index.js");
 const socketpairFactory = require("./lib/socketpair.js");
 const assert = require("node:assert");
 const net = require("node:net");
+const events = require("node:events");
+const nodeFs = require("node:fs");
 
 const assertIsValidPortNumber = (value) => {
   assert.strictEqual(typeof value, "number");
@@ -15,6 +17,7 @@ const assertIsIPAddress = (value) => {
 };
 
 describe("api", () => {
+  // eslint-disable-next-line max-statements
   describe("server", () => {
     it("should support createServer with no arguments", () => {
       const server = lksctp.createServer();
@@ -56,6 +59,551 @@ describe("api", () => {
 
       });
       server.close();
+    });
+
+    it("should support listen with a positional port (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0);
+      server.close();
+    });
+
+    it("should support listen with a positional port and host (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, "127.0.0.1");
+      server.close();
+    });
+
+    it("should support listen with a positional port and a callback argument (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, () => {
+
+      });
+      server.close();
+    });
+
+    it("should emit 'listening' asynchronously so a listener attached after listen() still fires", async () => {
+      const server = lksctp.createServer();
+      try {
+        server.listen(0);
+        // once() attaches only after listen() has returned; a synchronous emit
+        // would be missed. Parity with net.Server / node-sctp.
+        await events.once(server, "listening");
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should support a positional port and backlog (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, 128);
+      server.close();
+    });
+
+    it("should support the full positional form: port, host, backlog and callback", () => {
+      const server = lksctp.createServer();
+      server.listen(0, "127.0.0.1", 128, () => {
+
+      });
+      server.close();
+    });
+
+    it("should throw when listen() is called with no arguments", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen();
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "at least one argument is required";
+      });
+    });
+
+    it("should throw when an options object is passed with extra arguments", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 0 }, {});
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "invalid number of arguments";
+      });
+    });
+
+    it("should throw on a positional argument that is neither host nor backlog", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen(0, {});
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "invalid listen() argument";
+      });
+    });
+
+    // A caller that forwards an optional host — `listen(port, opts.host)` with
+    // nothing configured — hands over undefined, and net binds it as if the
+    // argument were absent. node-diameter and node-stp are both written that
+    // way, so these are the forms the ecosystem actually calls.
+    it("should treat an undefined host as an absent one (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, undefined);
+      server.close();
+    });
+
+    it("should treat a null host as an absent one (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen(0, null);
+      server.close();
+    });
+
+    it("should accept an undefined host followed by a callback", async () => {
+      const server = lksctp.createServer();
+      try {
+        await new Promise((resolve, reject) => {
+          server.listen(0, undefined, () => {
+            resolve();
+          });
+
+          server.on("error", reject);
+        });
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should accept undefined in every optional positional slot", () => {
+      const server = lksctp.createServer();
+      server.listen(0, undefined, undefined);
+      server.close();
+    });
+
+    // The same holds after an options object: listen(options, opts.callback)
+    // with no callback configured. It used to be refused as an extra argument
+    // while listen(port, undefined) was accepted.
+    it("should treat an undefined callback after the options object as an absent one", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 }, undefined);
+      server.close();
+    });
+
+    it("should treat a null callback after the options object as an absent one", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 }, null);
+      server.close();
+    });
+
+    it("should accept an undefined slot between the options object and a callback", async () => {
+      const server = lksctp.createServer();
+      try {
+        await new Promise((resolve, reject) => {
+          server.listen({ port: 0 }, undefined, () => {
+            resolve();
+          });
+
+          server.on("error", reject);
+        });
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should still refuse a null port rather than skip over it to the host", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen(null, "127.0.0.1");
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should treat host: undefined in the options object as an absent host", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0, host: undefined });
+      server.close();
+    });
+
+    it("should treat host: null in the options object as an absent host", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0, host: null });
+      server.close();
+    });
+
+    it("should not read a null host as a conflict with localAddresses", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0, host: null, localAddresses: ["127.0.0.1"] });
+      server.close();
+    });
+
+    // The rest of net's Server surface: a `listening` flag, an address() that
+    // answers null rather than throwing, a close() that takes a callback and
+    // emits 'close', a listen() callback that is a 'listening' listener like
+    // net's — asynchronous, and never handed an error — and methods that answer
+    // with the server so calls chain.
+    it("should report listening around listen() and close()", () => {
+      const server = lksctp.createServer();
+
+      assert.strictEqual(server.listening, false);
+
+      server.listen({ port: 0 });
+      assert.strictEqual(server.listening, true);
+
+      server.close();
+      assert.strictEqual(server.listening, false);
+    });
+
+    it("should answer null from address() while not listening", () => {
+      const server = lksctp.createServer();
+
+      assert.strictEqual(server.address(), null);
+
+      server.listen({ port: 0 });
+      assert.notStrictEqual(server.address(), null);
+
+      server.close();
+      assert.strictEqual(server.address(), null);
+    });
+
+    it("should answer with the server from listen() and close()", () => {
+      const server = lksctp.createServer();
+
+      assert.strictEqual(server.listen({ port: 0 }), server);
+      assert.strictEqual(server.close(), server);
+    });
+
+    // A net.Server is an EventEmitter, and callers treat it as one: events.once()
+    // removes its listeners when 'error' wins, which a server exposing only
+    // on() and once() answered with "emitter.removeListener is not a function".
+    it("should be an EventEmitter, as net.Server is", () => {
+      const server = lksctp.createServer();
+
+      assert.ok(server instanceof events.EventEmitter);
+    });
+
+    it("should stop calling a listener removed with off()", () => {
+      const server = lksctp.createServer();
+      let calls = 0;
+      const listener = () => {
+        calls += 1;
+      };
+
+      server.on("connection", listener);
+      server.emit("connection");
+      server.off("connection", listener);
+      server.emit("connection");
+
+      assert.strictEqual(calls, 1);
+      assert.strictEqual(server.listenerCount("connection"), 0);
+    });
+
+    it("should let events.once() reject on 'error' while it waits for 'listening'", async () => {
+      const server = lksctp.createServer();
+      const failure = Error("bind failed");
+
+      const listening = events.once(server, "listening");
+      server.emit("error", failure);
+
+      await assert.rejects(listening, failure);
+    });
+
+    it("should emit 'close' and run the close() callback", async () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 });
+
+      const closeEvent = events.once(server, "close");
+
+      const closeError = await new Promise((resolve) => {
+        server.close(resolve);
+      });
+
+      await closeEvent;
+      assert.strictEqual(closeError, undefined);
+    });
+
+    it("should hand the close() callback an error when nothing was listening", async () => {
+      const server = lksctp.createServer();
+
+      const closeError = await new Promise((resolve) => {
+        server.close(resolve);
+      });
+
+      assert.strictEqual(closeError.message, "server is not running");
+    });
+
+    it("should not throw on a second close()", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: 0 });
+      server.close();
+      server.close();
+    });
+
+    it("should run the listen() callback with no arguments", async () => {
+      const server = lksctp.createServer();
+
+      try {
+        const args = await new Promise((resolve, reject) => {
+          server.listen(0, (...callbackArgs) => {
+            resolve(callbackArgs);
+          });
+
+          server.on("error", reject);
+        });
+
+        assert.deepStrictEqual(args, []);
+      } finally {
+        server.close();
+      }
+    });
+
+    it("should not run the listen() callback when the bind fails", async () => {
+      const requestedPort = 12345;
+
+      const holder = lksctp.createServer();
+      holder.listen({ port: requestedPort });
+
+      const server = lksctp.createServer();
+      let callbackRan = false;
+
+      try {
+        const error = await new Promise((resolve, reject) => {
+          server.on("error", resolve);
+
+          server.listen({ port: requestedPort }, () => {
+            callbackRan = true;
+            reject(Error("the listen() callback ran on a failed bind"));
+          });
+        });
+
+        assert.strictEqual(error.code, "EADDRINUSE");
+        assert.strictEqual(callbackRan, false);
+        assert.strictEqual(server.listening, false);
+      } finally {
+        server.close();
+        holder.close();
+      }
+    });
+
+    // A failed bind is reported the way net reports it: on the next tick, so a
+    // handler attached after listen() returns still gets it. Emitted inside
+    // listen(), it reached only handlers attached before the call, and
+    // `server.listen(port, host); await events.once(server, "listening")`
+    // — node-mobile-machinery's shape — waited forever on a port in use.
+    const withPortInUse = async (test) => {
+      const holder = lksctp.createServer();
+      holder.listen({ port: 0 });
+      await events.once(holder, "listening");
+
+      try {
+        await test({ port: holder.address().port });
+      } finally {
+        holder.close();
+      }
+    };
+
+    it("should let events.once() reject when the bind fails", async () => {
+      await withPortInUse(async ({ port }) => {
+        const server = lksctp.createServer();
+
+        try {
+          server.listen(port);
+
+          await assert.rejects(events.once(server, "listening"), (error) => {
+            return error.code === "EADDRINUSE";
+          });
+        } finally {
+          server.close();
+        }
+      });
+    });
+
+    it("should hand a bind error to a handler attached after listen()", async () => {
+      await withPortInUse(async ({ port }) => {
+        const server = lksctp.createServer();
+
+        try {
+          server.listen({ port });
+
+          const [error] = await events.once(server, "error");
+          assert.strictEqual(error.code, "EADDRINUSE");
+          assert.strictEqual(server.listening, false);
+        } finally {
+          server.close();
+        }
+      });
+    });
+
+    // The socket options survive as far as listen(), which reads them to build
+    // the socket — an options argument that was dropped for a null shows up
+    // there and nowhere earlier, so each of these has to bind to prove anything.
+    it("should support createServer with undefined options and a connection listener", () => {
+      const server = lksctp.createServer(undefined, () => {
+
+      });
+      server.listen(0);
+      server.close();
+    });
+
+    it("should support createServer with null options and a connection listener", () => {
+      const server = lksctp.createServer(null, () => {
+
+      });
+      server.listen(0);
+      server.close();
+    });
+
+    it("should support createServer with undefined options alone", () => {
+      const server = lksctp.createServer(undefined);
+      server.listen(0);
+      server.close();
+    });
+
+    // port follows net's validatePort: a number or a numeric string, integral,
+    // 0..65535. isNaN() used to admit `null` as an ephemeral port and to pass
+    // 99999 down to Buffer#writeUInt16BE, whose range error names no option.
+    it("should accept a numeric string as the port (net.Server style)", () => {
+      const server = lksctp.createServer();
+      server.listen({ port: "0" });
+      server.close();
+    });
+
+    it("should throw on a null port rather than bind an ephemeral one", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: null });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on a port above the maximum", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 99999 });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port must be between 0 and 65535";
+      });
+    });
+
+    it("should throw on a negative port", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: -1 });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on a fractional port", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 1.5 });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on an empty string port", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: "" });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    // isIP() accepts IPv6, the AF_INET socket underneath does not: without a
+    // check at option level the address failed inside sctp_bindx() instead, out
+    // of a listen() that had already created the socket.
+    it("should throw on an IPv6 host", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 0, host: "::1" });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    it("should throw on an IPv6 address among localAddresses", () => {
+      assert.throws(() => {
+        const server = lksctp.createServer();
+        try {
+          server.listen({ port: 0, localAddresses: ["127.0.0.1", "::1"] });
+        } finally {
+          server.close();
+        }
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    // A refused option must cost nothing: the socket is created inside listen(),
+    // so a check that runs too late leaves an open fd behind with no way to
+    // reach it. Synchronous throughout, so nothing else can open an fd in the
+    // middle of the count.
+    it("should not leak a file descriptor when listen() refuses an option", () => {
+      const openFileDescriptorCount = () => {
+        return nodeFs.readdirSync("/proc/self/fd").length;
+      };
+
+      const refusedOptions = [
+        { port: null },
+        { port: 99999 },
+        { port: 0, host: "::1" },
+        { port: 0, localAddresses: ["::1"] }
+      ];
+
+      const before = openFileDescriptorCount();
+
+      refusedOptions.forEach((options) => {
+        const server = lksctp.createServer();
+        assert.throws(() => {
+          server.listen(options);
+        });
+        server.close();
+      });
+
+      assert.strictEqual(openFileDescriptorCount(), before);
+    });
+
+    it("should throw when createServer is given options that are not an object", () => {
+      assert.throws(() => {
+        lksctp.createServer("127.0.0.1");
+      }, (ex) => {
+        return ex.message === "options must be an object";
+      });
     });
 
     const withListeningServerInstance = async ({ socketOptions, listenOptions, test }) => {
@@ -194,6 +742,7 @@ describe("api", () => {
     });
   });
 
+  // eslint-disable-next-line max-statements
   describe("client", () => {
     it("should support remoteAddresses (single address)", async () => {
       const requestedServerAddress = "127.0.0.1";
@@ -321,6 +870,134 @@ describe("api", () => {
         });
       }, (ex) => {
         return ex.message === "localAddresses must be an array of valid IP addresses";
+      });
+    });
+
+    // connect() went by its own rules until these: null was an address rather
+    // than an absent option, `host` and `localAddress` were never checked at
+    // all (they failed as "invalid address" from inside the transport), and the
+    // port check was unreachable — a present but unusable port passed straight
+    // through to sockaddr formatting.
+    it("should treat a null host as an absent one", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: null,
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "host or remoteAddresses is required";
+      });
+    });
+
+    it("should throw if host is not an ip-address", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "not-an-ip-address",
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "host must be a valid IP address";
+      });
+    });
+
+    it("should throw on an IPv6 host", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "::1",
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    it("should throw on an IPv6 address among remoteAddresses", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          remoteAddresses: ["127.0.0.1", "::1"],
+          port: 12345
+        });
+      }, (ex) => {
+        return ex.message === "IPv6 is not implemented yet, cannot bind ::1";
+      });
+    });
+
+    it("should throw if localAddress is not an ip-address", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1",
+          port: 12345,
+          localAddress: "not-an-ip-address"
+        });
+      }, (ex) => {
+        return ex.message === "localAddress must be a valid IP address";
+      });
+    });
+
+    it("should throw if a missing port", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1"
+        });
+      }, (ex) => {
+        return ex.message === "port is required and must be a number";
+      });
+    });
+
+    it("should throw on a port above the maximum", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1",
+          port: 99999
+        });
+      }, (ex) => {
+        return ex.message === "port must be between 0 and 65535";
+      });
+    });
+
+    it("should throw on a localPort that is not a number", () => {
+      assert.throws(() => {
+        lksctp.connect({
+          host: "127.0.0.1",
+          port: 12345,
+          localPort: "not-a-port"
+        });
+      }, (ex) => {
+        return ex.message === "localPort must be a number";
+      });
+    });
+
+    it("should accept a numeric string as the port, as net does", async () => {
+      const requestedServerPort = 12345;
+
+      await socketpairFactory.withSocketpair({
+        options: {
+          server: {
+            listen: {
+              host: "127.0.0.1",
+              port: requestedServerPort
+            }
+          },
+          client: {
+            port: `${requestedServerPort}`
+          }
+        },
+        test: ({ client }) => {
+          assert.strictEqual(client.remotePort, requestedServerPort);
+        }
+      });
+    });
+
+    it("should treat a null localPort as an absent one", async () => {
+      await socketpairFactory.withSocketpair({
+        options: {
+          client: {
+            localPort: null
+          }
+        },
+        test: ({ client }) => {
+          assertIsValidPortNumber(client.localPort);
+        }
       });
     });
   });
