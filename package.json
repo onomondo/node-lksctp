@@ -13,15 +13,18 @@
     "url": "https://github.com/onomondo/node-lksctp"
   },
   "devDependencies": {
-    "c8": "^10.1.2",
-    "eslint": "^9.8.0",
-    "mocha": "^11.4.0",
-    "node-gyp": "^11.2.0",
+    "c8": "^12.0.0",
+    "eslint": "^10.11.0",
+    "mocha": "^12.0.2",
+    "node-gyp": "^13.0.2",
     "raw-socket": "^1.8.1",
     "sctp": "^1.0.0"
   },
   "scripts": {
     "lint": "eslint .",
     "test": "c8 --reporter lcov --reporter html --reporter text --src lib/ --all mocha"
+  },
+  "overrides": {
+    "nan": "^2.29.0"
   }
 }
