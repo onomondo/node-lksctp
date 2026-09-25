@@ -24,3 +24,13 @@
    fun:_ZN4node5StartEiPPc
    fun:(below main)
 }
+
+{
+   Node OpenSSL builtin compressions
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:CRYPTO_malloc
+   fun:ossl_load_builtin_compressions
+   ...
+}
