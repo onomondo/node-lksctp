@@ -43,4 +43,4 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libsctp-dev
       - run: npm ci
-      - run: npm publish --access public
+      - run: npm stage publish --access public
